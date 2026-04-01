@@ -17,7 +17,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       {/* Sidebar */}
       <aside className="w-60 shrink-0 border-r border-border bg-surface flex flex-col">
         <div className="p-5 border-b border-border">
-          <Link href="/" className="flex items-center gap-2">
+          <Link href="/dashboard" className="flex items-center gap-2">
             <Shield className="w-5 h-5 text-accent" />
             <span className="font-display text-lg font-bold text-text-primary">LeaseGuard</span>
           </Link>

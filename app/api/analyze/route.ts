@@ -32,11 +32,14 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
   }
 
-  // Check credits
-  if (profile.subscription_status !== 'active') {
-    if (profile.free_analyses_used >= 1) {
+  // Check credits — free tier gets 10,000 words total
+  // Limit disabled in dev for testing
+  const isDev = process.env.NODE_ENV === 'development'
+  const FREE_WORD_LIMIT = 10000
+  if (!isDev && profile.subscription_status !== 'active') {
+    if ((profile.free_analyses_used ?? 0) >= FREE_WORD_LIMIT) {
       return NextResponse.json(
-        { error: 'Free analysis used. Please upgrade to continue.', upgradeUrl: '/upload' },
+        { error: 'You have used your free word allowance. Paid plans are not available yet — check back soon.' },
         { status: 402 }
       )
     }
@@ -140,11 +143,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Failed to save results' }, { status: 500 })
   }
 
-  // Increment free usage if applicable
+  // Increment free word usage
   if (profile.subscription_status !== 'active') {
+    const wordCount = extractedText.split(/\s+/).filter(Boolean).length
     await supabase
       .from('profiles')
-      .update({ free_analyses_used: profile.free_analyses_used + 1 })
+      .update({ free_analyses_used: (profile.free_analyses_used ?? 0) + wordCount })
       .eq('id', authedUser.id)
   }
 
