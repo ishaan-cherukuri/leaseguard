@@ -1,8 +1,8 @@
-import Anthropic from '@anthropic-ai/sdk'
+import OpenAI from 'openai'
 import type { ClaudeAnalysisResult } from '@/types'
 
-const client = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
+const client = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
 })
 
 const SYSTEM_PROMPT = `You are LeaseGuard, an expert contract and lease analyzer. Your job is to protect consumers from unfair, illegal, or financially harmful contract terms. You analyze documents with the precision of a real estate attorney combined with the clarity of a consumer advocate.
@@ -48,21 +48,24 @@ export async function analyzeContract(
   _documentType: string,
   _fileName: string
 ): Promise<ClaudeAnalysisResult> {
-  const timeoutMs = 30_000
+  const timeoutMs = 60_000
 
-  async function callClaude(strict = false): Promise<ClaudeAnalysisResult> {
+  async function callOpenAI(strict = false): Promise<ClaudeAnalysisResult> {
     const controller = new AbortController()
     const timer = setTimeout(() => controller.abort(), timeoutMs)
 
     try {
-      const message = await client.messages.create(
+      const response = await client.chat.completions.create(
         {
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 4096,
-          system: strict
-            ? SYSTEM_PROMPT + '\n\nCRITICAL: Return ONLY raw JSON. No text before or after. No code fences.'
-            : SYSTEM_PROMPT,
+          model: 'gpt-4o',
+          response_format: { type: 'json_object' },
           messages: [
+            {
+              role: 'system',
+              content: strict
+                ? SYSTEM_PROMPT + '\n\nCRITICAL: Return ONLY raw JSON. No text before or after.'
+                : SYSTEM_PROMPT,
+            },
             {
               role: 'user',
               content: buildUserMessage(extractedText),
@@ -72,35 +75,35 @@ export async function analyzeContract(
         { signal: controller.signal }
       )
 
-      const content = message.content[0]
-      if (content.type !== 'text') {
-        throw new Error('Unexpected response type from Claude')
-      }
+      const raw = response.choices[0]?.message?.content?.trim() ?? ''
+      console.log('[OpenAI] Raw response (first 300 chars):', raw.slice(0, 300))
 
-      const raw = content.text.trim()
-      // Strip markdown code fences if present
-      const jsonText = raw.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '').trim()
-
-      return JSON.parse(jsonText) as ClaudeAnalysisResult
+      return JSON.parse(raw) as ClaudeAnalysisResult
     } finally {
       clearTimeout(timer)
     }
   }
 
   try {
-    return await callClaude(false)
+    return await callOpenAI(false)
   } catch (firstError) {
-    if ((firstError as Error).name === 'AbortError') {
-      throw new Error('Analysis timed out after 30 seconds. Please try again.')
+    const err = firstError as Error
+    console.error('[OpenAI] First attempt failed:', err.message)
+
+    if (err.name === 'AbortError') {
+      throw new Error('Analysis timed out. Please try again.')
     }
-    // Retry once with stricter prompt
+
     try {
-      return await callClaude(true)
+      return await callOpenAI(true)
     } catch (secondError) {
-      if ((secondError as Error).name === 'AbortError') {
-        throw new Error('Analysis timed out after 30 seconds. Please try again.')
+      const err2 = secondError as Error
+      console.error('[OpenAI] Second attempt failed:', err2.message)
+
+      if (err2.name === 'AbortError') {
+        throw new Error('Analysis timed out. Please try again.')
       }
-      throw new Error('Failed to parse AI analysis. Please try again.')
+      throw new Error(`AI analysis failed: ${err2.message}`)
     }
   }
 }
