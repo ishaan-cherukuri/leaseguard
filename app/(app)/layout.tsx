@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { Shield, LayoutDashboard, Upload, LogOut } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
+import FeedbackModal from '@/components/FeedbackModal'
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient()
@@ -39,8 +40,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           </Link>
         </nav>
 
-        <div className="p-4 border-t border-border">
-          <p className="text-xs text-text-secondary mb-3 truncate">{user.email}</p>
+        <div className="p-4 border-t border-border space-y-3">
+          <p className="text-xs text-text-secondary truncate">{user.email}</p>
+          <FeedbackModal />
           <form action="/api/auth/signout" method="post">
             <button
               type="submit"

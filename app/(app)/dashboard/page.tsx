@@ -87,9 +87,9 @@ export default async function DashboardPage() {
               </span>
             </div>
             {(typedProfile?.free_analyses_used ?? 0) >= 1 && (
-              <Link href="/upload" className="text-accent text-sm hover:text-accent-hover transition-colors font-medium">
-                Upgrade to continue →
-              </Link>
+              <span className="text-text-secondary text-sm">
+                Upgrades not available yet
+              </span>
             )}
           </div>
         )}
