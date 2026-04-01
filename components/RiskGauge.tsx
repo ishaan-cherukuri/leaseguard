@@ -9,44 +9,47 @@ interface RiskGaugeProps {
 }
 
 function scoreToColor(score: number): string {
-  if (score <= 30) return 'var(--safe)'
-  if (score <= 60) return 'var(--warning)'
-  return 'var(--critical)'
+  if (score <= 30) return '#3ECF8E'
+  if (score <= 60) return '#E09A30'
+  if (score <= 80) return '#E8445A'
+  return '#E05252'
 }
 
-function levelLabel(level: RiskLevel): string {
-  return level.toUpperCase()
+const LEVEL_LABELS: Record<RiskLevel, string> = {
+  low: 'LOW RISK',
+  medium: 'MEDIUM RISK',
+  high: 'HIGH RISK',
+  critical: 'CRITICAL',
 }
 
 export default function RiskGauge({ score, level }: RiskGaugeProps) {
   const scoreRef = useRef<SVGTextElement>(null)
   const circleRef = useRef<SVGCircleElement>(null)
+  const glowRef = useRef<SVGCircleElement>(null)
 
-  const size = 200
-  const strokeWidth = 12
+  const size = 180
+  const strokeWidth = 10
   const radius = (size - strokeWidth * 2) / 2
   const circumference = 2 * Math.PI * radius
-  // Only fill 270° of the circle (¾ arc), starting from bottom-left
   const arcLength = circumference * 0.75
   const targetDash = (score / 100) * arcLength
   const color = scoreToColor(score)
 
   useEffect(() => {
     let start: number | null = null
-    const duration = 1200
+    const duration = 1400
 
-    function animate(timestamp: number) {
-      if (!start) start = timestamp
-      const progress = Math.min((timestamp - start) / duration, 1)
-      const eased = 1 - Math.pow(1 - progress, 3)
+    function animate(ts: number) {
+      if (!start) start = ts
+      const progress = Math.min((ts - start) / duration, 1)
+      const eased = 1 - Math.pow(1 - progress, 4)
 
       const currentScore = Math.round(eased * score)
       const currentDash = eased * targetDash
 
       if (scoreRef.current) scoreRef.current.textContent = String(currentScore)
-      if (circleRef.current) {
-        circleRef.current.style.strokeDashoffset = String(arcLength - currentDash)
-      }
+      if (circleRef.current) circleRef.current.style.strokeDashoffset = String(arcLength - currentDash)
+      if (glowRef.current) glowRef.current.style.strokeDashoffset = String(arcLength - currentDash)
 
       if (progress < 1) requestAnimationFrame(animate)
     }
@@ -55,72 +58,59 @@ export default function RiskGauge({ score, level }: RiskGaugeProps) {
   }, [score, arcLength, targetDash])
 
   return (
-    <div className="flex flex-col items-center">
-      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-        {/* Background track */}
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          fill="none"
-          stroke="var(--border)"
-          strokeWidth={strokeWidth}
-          strokeLinecap="round"
-          strokeDasharray={`${arcLength} ${circumference}`}
-          strokeDashoffset={0}
-          transform={`rotate(135 ${size / 2} ${size / 2})`}
-        />
-        {/* Animated fill */}
-        <circle
-          ref={circleRef}
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          fill="none"
-          stroke={color}
-          strokeWidth={strokeWidth}
-          strokeLinecap="round"
-          strokeDasharray={`${arcLength} ${circumference}`}
-          strokeDashoffset={arcLength}
-          transform={`rotate(135 ${size / 2} ${size / 2})`}
-          style={{ transition: 'stroke 0.3s ease' }}
-        />
-        {/* Score number */}
-        <text
-          ref={scoreRef}
-          x={size / 2}
-          y={size / 2 + 8}
-          textAnchor="middle"
-          dominantBaseline="middle"
-          fill="var(--text-primary)"
-          fontSize="40"
-          fontWeight="bold"
-          fontFamily="var(--font-playfair)"
-        >
-          0
-        </text>
-        {/* /100 label */}
-        <text
-          x={size / 2}
-          y={size / 2 + 34}
-          textAnchor="middle"
-          fill="var(--text-secondary)"
-          fontSize="12"
-          fontFamily="var(--font-dm-sans)"
-        >
-          out of 100
-        </text>
-      </svg>
+    <div className="flex flex-col items-center gap-3">
+      <div className="relative">
+        {/* Outer glow ring */}
+        <div className="absolute inset-0 rounded-full opacity-20 blur-xl"
+          style={{ background: color, transform: 'scale(0.8)' }} />
 
-      <div
-        className="mt-1 px-4 py-1 rounded-full text-sm font-bold tracking-widest"
+        <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="relative">
+          {/* Track */}
+          <circle cx={size / 2} cy={size / 2} r={radius}
+            fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth={strokeWidth}
+            strokeLinecap="round"
+            strokeDasharray={`${arcLength} ${circumference}`}
+            strokeDashoffset={0}
+            transform={`rotate(135 ${size / 2} ${size / 2})`}
+          />
+          {/* Glow layer */}
+          <circle ref={glowRef} cx={size / 2} cy={size / 2} r={radius}
+            fill="none" stroke={color} strokeWidth={strokeWidth + 6} strokeLinecap="round"
+            strokeDasharray={`${arcLength} ${circumference}`}
+            strokeDashoffset={arcLength}
+            transform={`rotate(135 ${size / 2} ${size / 2})`}
+            opacity={0.15} style={{ filter: 'blur(4px)' }}
+          />
+          {/* Main arc */}
+          <circle ref={circleRef} cx={size / 2} cy={size / 2} r={radius}
+            fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round"
+            strokeDasharray={`${arcLength} ${circumference}`}
+            strokeDashoffset={arcLength}
+            transform={`rotate(135 ${size / 2} ${size / 2})`}
+          />
+          {/* Score */}
+          <text ref={scoreRef}
+            x={size / 2} y={size / 2 + 6}
+            textAnchor="middle" dominantBaseline="middle"
+            fill="var(--text-primary)" fontSize="36" fontWeight="700"
+            fontFamily="var(--font-playfair)"
+          >0</text>
+          <text x={size / 2} y={size / 2 + 26}
+            textAnchor="middle"
+            fill="var(--text-muted)" fontSize="10"
+            fontFamily="var(--font-dm-sans)"
+          >out of 100</text>
+        </svg>
+      </div>
+
+      {/* Level badge */}
+      <div className="px-3 py-1 rounded-full text-xs font-bold tracking-widest"
         style={{
           color,
-          backgroundColor: `${color}18`,
-          border: `1px solid ${color}40`,
-        }}
-      >
-        {levelLabel(level)}
+          background: `color-mix(in srgb, ${color} 12%, transparent)`,
+          border: `1px solid color-mix(in srgb, ${color} 25%, transparent)`,
+        }}>
+        {LEVEL_LABELS[level]}
       </div>
     </div>
   )
