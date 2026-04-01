@@ -39,13 +39,6 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(loginUrl)
   }
 
-  // Redirect logged-in users away from auth pages
-  if ((pathname === '/login' || pathname === '/signup') && user) {
-    const dashboardUrl = request.nextUrl.clone()
-    dashboardUrl.pathname = '/dashboard'
-    return NextResponse.redirect(dashboardUrl)
-  }
-
   return supabaseResponse
 }
 

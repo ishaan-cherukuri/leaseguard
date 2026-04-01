@@ -53,7 +53,7 @@ export default function UploadPage() {
 
       if (!res.ok) {
         if (res.status === 402) {
-          setError('You have used your free analysis. Please upgrade to continue.')
+          setError('You have used your free analysis. Paid plans are not available yet — check back soon.')
         } else {
           setError(data.error ?? 'Analysis failed. Please try again.')
         }
