@@ -29,13 +29,13 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center px-4 relative overflow-hidden">
       <div className="absolute inset-0 dot-grid opacity-30" />
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-96 h-96 rounded-full pointer-events-none"
-        style={{ background: 'radial-gradient(ellipse, rgba(201,168,76,0.12) 0%, transparent 70%)', filter: 'blur(60px)' }} />
+        style={{ background: 'radial-gradient(ellipse, var(--accent-dim) 0%, transparent 70%)', filter: 'blur(60px)' }} />
 
       <div className="w-full max-w-sm relative z-10">
         <div className="text-center mb-8">
           <Link href="/" className="inline-flex items-center gap-2.5 mb-6 group">
             <div className="w-8 h-8 rounded-lg flex items-center justify-center transition-all"
-              style={{ background: 'rgba(201,168,76,0.1)', border: '1px solid rgba(201,168,76,0.25)' }}>
+              style={{ background: 'var(--accent-dim)', border: '1px solid color-mix(in srgb, var(--accent) 25%, transparent)' }}>
               <Shield className="w-4 h-4 text-accent" />
             </div>
             <span className="font-display text-lg font-bold text-text-primary">LeaseGuard</span>
@@ -47,7 +47,7 @@ export default function LoginPage() {
         <div className="rounded-2xl border border-border p-7 relative overflow-hidden"
           style={{ background: 'linear-gradient(135deg, var(--surface-raised) 0%, var(--surface) 100%)' }}>
           <div className="absolute top-0 left-0 right-0 h-px"
-            style={{ background: 'linear-gradient(90deg, transparent, rgba(201,168,76,0.3), transparent)' }} />
+            style={{ background: 'linear-gradient(90deg, transparent, var(--accent-glow), transparent)' }} />
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
@@ -57,7 +57,7 @@ export default function LoginPage() {
               <input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)}
                 className="w-full px-4 py-3 rounded-xl text-text-primary placeholder-text-muted text-sm focus:outline-none transition-all"
                 style={{ background: 'var(--background)', border: '1px solid var(--border)' }}
-                onFocus={(e) => e.currentTarget.style.borderColor = 'rgba(201,168,76,0.4)'}
+                onFocus={(e) => e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--accent) 40%, transparent)'}
                 onBlur={(e) => e.currentTarget.style.borderColor = 'var(--border)'}
                 placeholder="you@example.com"
               />
@@ -72,7 +72,7 @@ export default function LoginPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   className="w-full px-4 py-3 rounded-xl text-text-primary placeholder-text-muted text-sm focus:outline-none transition-all pr-12"
                   style={{ background: 'var(--background)', border: '1px solid var(--border)' }}
-                  onFocus={(e) => e.currentTarget.style.borderColor = 'rgba(201,168,76,0.4)'}
+                  onFocus={(e) => e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--accent) 40%, transparent)'}
                   onBlur={(e) => e.currentTarget.style.borderColor = 'var(--border)'}
                   placeholder="••••••••"
                 />
@@ -92,8 +92,7 @@ export default function LoginPage() {
             )}
 
             <button type="submit" disabled={loading}
-              className="w-full py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all disabled:opacity-50 group mt-2"
-              style={{ background: 'linear-gradient(135deg, #C9A84C, #A07830)', color: '#080910' }}
+              className="btn-primary w-full py-3 rounded-xl text-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:pointer-events-none mt-2"
             >
               {loading ? 'Signing in...' : <>Sign in <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" /></>}
             </button>

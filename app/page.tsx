@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { Shield, ArrowRight, CheckCircle, Zap, Lock, TrendingUp, FileSearch, AlertTriangle } from 'lucide-react'
+import { Shield, ArrowRight, CheckCircle, Zap, Lock, TrendingUp, FileSearch, AlertTriangle, X } from 'lucide-react'
 
 export default function LandingPage() {
   return (
@@ -8,7 +8,7 @@ export default function LandingPage() {
       {/* Gradient mesh background */}
       <div className="fixed inset-0 z-0 pointer-events-none">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[900px] h-[600px] rounded-full opacity-20"
-          style={{ background: 'radial-gradient(ellipse, rgba(201,168,76,0.3) 0%, transparent 70%)', filter: 'blur(80px)' }} />
+          style={{ background: 'radial-gradient(ellipse, color-mix(in srgb, var(--accent) 30%, transparent) 0%, transparent 70%)', filter: 'blur(80px)' }} />
         <div className="absolute top-1/3 -left-40 w-[600px] h-[600px] rounded-full opacity-10"
           style={{ background: 'radial-gradient(ellipse, rgba(232,68,90,0.4) 0%, transparent 70%)', filter: 'blur(100px)' }} />
         <div className="absolute bottom-0 right-0 w-[500px] h-[500px] rounded-full opacity-10"
@@ -35,12 +35,9 @@ export default function LandingPage() {
             Sign in
           </Link>
           <Link href="/signup"
-            className="text-sm px-4 py-2 rounded-lg font-medium transition-all relative overflow-hidden group"
-            style={{ background: 'linear-gradient(135deg, #C9A84C, #A07830)', color: '#080910' }}
+            className="btn-primary text-sm px-4 py-2 rounded-lg relative overflow-hidden group"
           >
             <span className="relative z-10">Get started free</span>
-            <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity"
-              style={{ background: 'linear-gradient(135deg, #E2C06A, #C9A84C)' }} />
           </Link>
         </div>
       </nav>
@@ -64,14 +61,13 @@ export default function LandingPage() {
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 fade-in-up" style={{ animationDelay: '240ms' }}>
           <Link href="/signup"
-            className="group inline-flex items-center gap-3 px-8 py-4 rounded-xl font-semibold text-base transition-all glow-gold"
-            style={{ background: 'linear-gradient(135deg, #C9A84C, #A07830)', color: '#080910' }}
+            className="btn-primary group inline-flex items-center gap-3 px-8 py-4 rounded-xl text-base glow-gold"
           >
             Analyze for free
             <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
           </Link>
           <Link href="/login"
-            className="inline-flex items-center gap-2 px-8 py-4 rounded-xl font-medium text-sm text-text-secondary border border-border hover:border-accent/30 hover:text-text-primary transition-all glass"
+            className="btn-ghost inline-flex items-center gap-2 px-8 py-4 rounded-xl text-sm glass"
           >
             Sign in
           </Link>
@@ -162,70 +158,159 @@ export default function LandingPage() {
       </section>
 
       {/* Pricing */}
-      <section id="pricing" className="relative z-10 px-8 py-24 max-w-4xl mx-auto">
+      <section id="pricing" className="relative z-10 px-8 py-24 max-w-7xl mx-auto">
         <div className="text-center mb-16">
           <h2 className="font-display text-4xl md:text-5xl font-bold text-text-primary mb-4">Simple pricing</h2>
           <p className="text-text-secondary">Start free. No card required.</p>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-5">
-          {/* Pay per use */}
-          <div className="p-8 rounded-2xl border border-border bg-surface">
-            <div className="text-text-secondary text-xs uppercase tracking-widest mb-3 font-medium">Pay-per-analysis</div>
-            <div className="flex items-end gap-1 mb-1">
-              <span className="font-display text-5xl font-bold text-text-primary">$19</span>
+        <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-4">
+          {/* Free */}
+          <div className="p-7 rounded-2xl border border-border bg-surface flex flex-col">
+            <div className="mb-5">
+              <div className="w-9 h-9 rounded-xl mb-4 flex items-center justify-center"
+                style={{ background: 'var(--surface-raised)', border: '1px solid var(--border)' }}>
+                <X className="w-4 h-4 text-text-muted" />
+              </div>
+              <div className="text-text-secondary text-xs uppercase tracking-widest mb-3 font-semibold">Free</div>
+              <div className="flex items-end gap-1 mb-1">
+                <span className="font-display text-4xl font-bold text-text-primary">$0</span>
+              </div>
+              <p className="text-text-secondary text-xs">1 doc / month</p>
             </div>
-            <div className="text-text-secondary text-sm mb-8">one-time per document</div>
-            <ul className="space-y-3 mb-8">
-              {['Single contract analysis', 'Full risk breakdown', 'Negotiation scripts', 'PDF report'].map((f) => (
-                <li key={f} className="flex items-center gap-3 text-text-secondary text-sm">
-                  <CheckCircle className="w-4 h-4 text-safe shrink-0" />
-                  {f}
+            <ul className="space-y-2.5 mb-7 flex-1">
+              {[
+                { t: '1 contract per month', y: true },
+                { t: 'Risk score', y: true },
+                { t: 'Flagged clause list', y: true },
+                { t: 'Full explanations', y: false },
+                { t: 'Negotiation scripts', y: false },
+              ].map((f) => (
+                <li key={f.t} className="flex items-start gap-2.5 text-sm">
+                  <CheckCircle className="w-4 h-4 shrink-0 mt-0.5" style={{ color: f.y ? 'var(--safe)' : 'var(--border)' }} />
+                  <span style={{ color: f.y ? 'var(--text-secondary)' : 'var(--text-muted)' }}>{f.t}</span>
                 </li>
               ))}
             </ul>
-            <Link href="/signup"
-              className="block text-center py-3 rounded-xl border border-border text-text-secondary hover:border-accent/40 hover:text-text-primary transition-all text-sm font-medium glass"
-            >
-              Get started
+            <Link href="/signup" className="btn-ghost block text-center py-2.5 rounded-xl text-sm font-medium">
+              Get started free
             </Link>
           </div>
 
-          {/* Subscription */}
-          <div className="p-8 rounded-2xl relative overflow-hidden gradient-border glow-gold"
-            style={{ background: 'linear-gradient(135deg, rgba(201,168,76,0.06) 0%, var(--surface) 60%)' }}>
-            <div className="absolute top-4 right-4 px-2.5 py-1 rounded-full text-xs font-bold"
-              style={{ background: 'linear-gradient(135deg, #C9A84C, #A07830)', color: '#080910' }}>
-              BEST VALUE
+          {/* Shield */}
+          <div className="p-7 rounded-2xl border border-border bg-surface flex flex-col">
+            <div className="mb-5">
+              <div className="w-9 h-9 rounded-xl mb-4 flex items-center justify-center"
+                style={{ background: 'var(--surface-raised)', border: '1px solid var(--border)' }}>
+                <Shield className="w-4 h-4 text-text-secondary" />
+              </div>
+              <div className="text-text-secondary text-xs uppercase tracking-widest mb-3 font-semibold">Shield</div>
+              <div className="flex items-end gap-1 mb-1">
+                <span className="font-display text-4xl font-bold text-text-primary">$14</span>
+                <span className="text-text-secondary text-sm mb-1.5">one-time</span>
+              </div>
+              <p className="text-text-secondary text-xs">1 doc included</p>
             </div>
-            <div className="text-accent text-xs uppercase tracking-widest mb-3 font-medium">Subscription</div>
-            <div className="flex items-end gap-1 mb-1">
-              <span className="font-display text-5xl font-bold text-text-primary">$9.99</span>
-              <span className="text-text-secondary text-sm mb-2">/mo</span>
-            </div>
-            <div className="text-text-secondary text-sm mb-8">unlimited analyses</div>
-            <ul className="space-y-3 mb-8">
-              {['Unlimited analyses', 'Full risk breakdown', 'Negotiation scripts', 'Priority AI processing', 'Email reports', 'Early access to new features'].map((f) => (
-                <li key={f} className="flex items-center gap-3 text-text-secondary text-sm">
-                  <CheckCircle className="w-4 h-4 text-accent shrink-0" />
-                  {f}
+            <ul className="space-y-2.5 mb-7 flex-1">
+              {[
+                { t: '1 contract analysis', y: true },
+                { t: 'Risk score', y: true },
+                { t: 'Full explanations', y: true },
+                { t: 'Negotiation scripts', y: true },
+                { t: '1 heavy doc = 1 credit', y: true },
+              ].map((f) => (
+                <li key={f.t} className="flex items-start gap-2.5 text-sm">
+                  <CheckCircle className="w-4 h-4 shrink-0 mt-0.5 text-safe" />
+                  <span className="text-text-secondary">{f.t}</span>
                 </li>
               ))}
             </ul>
-            <Link href="/signup"
-              className="block text-center py-3 rounded-xl font-semibold text-sm transition-all"
-              style={{ background: 'linear-gradient(135deg, #C9A84C, #A07830)', color: '#080910' }}
-            >
-              Start free trial
+            <Link href="/signup" className="btn-ghost block text-center py-2.5 rounded-xl text-sm font-medium">
+              Get Shield — $14
+            </Link>
+          </div>
+
+          {/* Guard — featured */}
+          <div className="p-7 rounded-2xl relative overflow-hidden gradient-border glow-gold flex flex-col"
+            style={{ background: 'linear-gradient(135deg, color-mix(in srgb, var(--accent) 8%, transparent) 0%, var(--surface) 70%)' }}>
+            <div className="absolute top-4 right-4 px-2 py-0.5 rounded-full text-xs font-bold btn-primary">
+              POPULAR
+            </div>
+            <div className="mb-5">
+              <div className="w-9 h-9 rounded-xl mb-4 flex items-center justify-center"
+                style={{ background: 'var(--accent-dim)', border: '1px solid color-mix(in srgb, var(--accent) 25%, transparent)' }}>
+                <Lock className="w-4 h-4 text-accent" />
+              </div>
+              <div className="text-accent text-xs uppercase tracking-widest mb-3 font-semibold">Guard</div>
+              <div className="flex items-end gap-1 mb-1">
+                <span className="font-display text-4xl font-bold text-text-primary">$9.99</span>
+                <span className="text-text-secondary text-sm mb-1.5">/mo</span>
+              </div>
+              <p className="text-text-secondary text-xs">4 docs / month</p>
+            </div>
+            <ul className="space-y-2.5 mb-7 flex-1">
+              {[
+                '4 contracts per month',
+                'Risk score',
+                'Full explanations',
+                'Negotiation scripts',
+                '1 heavy doc = 2 credits',
+              ].map((f) => (
+                <li key={f} className="flex items-start gap-2.5 text-sm">
+                  <CheckCircle className="w-4 h-4 shrink-0 mt-0.5 text-accent" />
+                  <span className="text-text-secondary">{f}</span>
+                </li>
+              ))}
+            </ul>
+            <Link href="/signup" className="btn-primary block text-center py-2.5 rounded-xl text-sm font-semibold">
+              Start Guard — $9.99/mo
+            </Link>
+          </div>
+
+          {/* Sentinel */}
+          <div className="p-7 rounded-2xl border border-border bg-surface flex flex-col">
+            <div className="mb-5">
+              <div className="w-9 h-9 rounded-xl mb-4 flex items-center justify-center"
+                style={{ background: 'color-mix(in srgb, var(--text-primary) 6%, transparent)', border: '1px solid color-mix(in srgb, var(--text-primary) 12%, transparent)' }}>
+                <Zap className="w-4 h-4 text-text-primary" />
+              </div>
+              <div className="text-text-secondary text-xs uppercase tracking-widest mb-3 font-semibold">Sentinel</div>
+              <div className="flex items-end gap-1 mb-1">
+                <span className="font-display text-4xl font-bold text-text-primary">$24.99</span>
+                <span className="text-text-secondary text-sm mb-1.5">/mo</span>
+              </div>
+              <p className="text-text-secondary text-xs">12 docs / month</p>
+            </div>
+            <ul className="space-y-2.5 mb-7 flex-1">
+              {[
+                '12 contracts per month',
+                'Risk score',
+                'Full explanations',
+                'Negotiation scripts',
+                '1 heavy doc = 2 credits',
+              ].map((f) => (
+                <li key={f} className="flex items-start gap-2.5 text-sm">
+                  <CheckCircle className="w-4 h-4 shrink-0 mt-0.5 text-safe" />
+                  <span className="text-text-secondary">{f}</span>
+                </li>
+              ))}
+            </ul>
+            <Link href="/signup" className="btn-ghost block text-center py-2.5 rounded-xl text-sm font-medium">
+              Get Sentinel — $24.99/mo
             </Link>
           </div>
         </div>
+
+        {/* Heavy doc footnote */}
+        <p className="text-center text-text-muted text-xs mt-6">
+          Heavy documents (20+ pages or 5,000+ words) use 2 doc credits on Guard &amp; Sentinel.
+        </p>
       </section>
 
       {/* Bottom CTA */}
       <section className="relative z-10 px-8 py-24 max-w-3xl mx-auto text-center">
         <div className="p-12 rounded-3xl border border-accent/20 relative overflow-hidden"
-          style={{ background: 'linear-gradient(135deg, rgba(201,168,76,0.08) 0%, rgba(8,9,16,0.9) 100%)' }}>
+          style={{ background: 'linear-gradient(135deg, color-mix(in srgb, var(--accent) 8%, transparent) 0%, rgba(8,9,16,0.9) 100%)' }}>
           <div className="absolute inset-0 dot-grid opacity-30" />
           <div className="relative z-10">
             <Zap className="w-10 h-10 text-accent mx-auto mb-6 float" />
@@ -236,8 +321,7 @@ export default function LandingPage() {
               10,000 words free. No credit card. Takes less than a minute.
             </p>
             <Link href="/signup"
-              className="inline-flex items-center gap-3 px-8 py-4 rounded-xl font-semibold text-base transition-all glow-gold group"
-              style={{ background: 'linear-gradient(135deg, #C9A84C, #A07830)', color: '#080910' }}
+              className="btn-primary inline-flex items-center gap-3 px-8 py-4 rounded-xl text-base glow-gold group"
             >
               Analyze your contract free
               <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />

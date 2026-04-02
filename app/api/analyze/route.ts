@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { analyzeContract } from '@/lib/claude'
 import { extractTextFromPDF } from '@/lib/pdf'
+import { PLAN_LIMITS } from '@/types'
+import type { PlanType } from '@/types'
 
 export async function POST(request: NextRequest) {
   const supabase = await createServiceClient()
@@ -32,14 +34,31 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
   }
 
-  // Check credits — free tier gets 10,000 words total
-  // Limit disabled in dev for testing
-  const isDev = process.env.NODE_ENV === 'development'
-  const FREE_WORD_LIMIT = 10000
-  if (!isDev && profile.subscription_status !== 'active') {
-    if ((profile.free_analyses_used ?? 0) >= FREE_WORD_LIMIT) {
+  // Enforce per-plan doc limits
+  const plan: PlanType = profile.plan ?? 'free'
+  const limit = PLAN_LIMITS[plan]
+
+  // For shield (one-time), use free_analyses_used — never resets
+  if (plan === 'shield') {
+    if ((profile.free_analyses_used ?? 0) >= 1) {
+      return NextResponse.json({ error: 'Shield analysis used. Upgrade to a monthly plan.' }, { status: 402 })
+    }
+  } else {
+    // For free/guard/sentinel: use monthly counter, reset if new calendar month
+    const resetAt = new Date(profile.docs_reset_at ?? profile.created_at)
+    const now = new Date()
+    let docsUsed = profile.docs_used_this_month ?? 0
+
+    const isNewMonth = now.getMonth() !== resetAt.getMonth() || now.getFullYear() !== resetAt.getFullYear()
+    if (isNewMonth) {
+      // Reset counter in DB and treat as 0 used
+      await supabase.from('profiles').update({ docs_used_this_month: 0, docs_reset_at: now.toISOString() }).eq('id', authedUser.id)
+      docsUsed = 0
+    }
+
+    if (docsUsed >= limit) {
       return NextResponse.json(
-        { error: 'You have used your free word allowance. Paid plans are not available yet — check back soon.' },
+        { error: `You've used all ${limit} ${plan === 'free' ? 'free doc' : `${plan} plan doc`}${limit > 1 ? 's' : ''} this month. Upgrade to continue.` },
         { status: 402 }
       )
     }
@@ -143,13 +162,20 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Failed to save results' }, { status: 500 })
   }
 
-  // Increment free word usage
-  if (profile.subscription_status !== 'active') {
-    const wordCount = extractedText.split(/\s+/).filter(Boolean).length
-    await supabase
+  // Increment usage counter
+  if (plan === 'shield') {
+    const { error: incErr } = await supabase
       .from('profiles')
-      .update({ free_analyses_used: (profile.free_analyses_used ?? 0) + wordCount })
+      .update({ free_analyses_used: 1 })
       .eq('id', authedUser.id)
+    if (incErr) console.error('[analyze] failed to increment free_analyses_used:', incErr)
+  } else {
+    const newCount = (profile.docs_used_this_month ?? 0) + 1
+    const { error: incErr } = await supabase
+      .from('profiles')
+      .update({ docs_used_this_month: newCount, free_analyses_used: newCount })
+      .eq('id', authedUser.id)
+    if (incErr) console.error('[analyze] failed to increment docs_used_this_month:', incErr)
   }
 
   return NextResponse.json({ analysisId: analysisRecord.id, status: 'complete' })

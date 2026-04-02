@@ -44,7 +44,7 @@ export default function FeedbackModal() {
     <>
       <button
         onClick={() => setOpen(true)}
-        className="flex items-center gap-2 text-text-secondary hover:text-text-primary transition-colors text-sm w-full"
+        className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-text-secondary hover:text-text-primary hover:bg-surface-raised transition-all text-sm w-full"
       >
         <MessageSquare className="w-4 h-4" />
         Send feedback

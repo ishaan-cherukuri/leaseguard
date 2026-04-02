@@ -18,13 +18,13 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
         {/* Subtle top glow */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-px"
-          style={{ background: 'linear-gradient(90deg, transparent, rgba(201,168,76,0.4), transparent)' }} />
+          style={{ background: 'linear-gradient(90deg, transparent, color-mix(in srgb, var(--accent) 40%, transparent), transparent)' }} />
 
         {/* Logo */}
         <div className="px-5 py-5 border-b border-border">
           <Link href="/dashboard" className="flex items-center gap-2.5 group">
             <div className="w-7 h-7 rounded-lg flex items-center justify-center transition-all group-hover:border-accent/50"
-              style={{ background: 'rgba(201,168,76,0.1)', border: '1px solid rgba(201,168,76,0.25)' }}>
+              style={{ background: 'var(--accent-dim)', border: '1px solid color-mix(in srgb, var(--accent) 25%, transparent)' }}>
               <Shield className="w-3.5 h-3.5 text-accent" />
             </div>
             <span className="font-display text-base font-bold text-text-primary">LeaseGuard</span>
@@ -49,7 +49,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
         {/* Bottom */}
         <div className="px-3 py-4 border-t border-border space-y-0.5">
-          <div className="px-3 py-2">
+          <div className="px-3 py-2.5">
             <p className="text-xs text-text-muted truncate">{user.email}</p>
           </div>
           <ThemeToggle />

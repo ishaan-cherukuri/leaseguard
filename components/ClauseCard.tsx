@@ -45,7 +45,7 @@ export default function ClauseCard({ clause }: ClauseCardProps) {
 
   return (
     <div
-      className="rounded-xl overflow-hidden transition-all hover:translate-y-[-1px]"
+      className="rounded-xl overflow-hidden card-interactive"
       style={{
         background: cfg.bgColor,
         border: `1px solid ${cfg.borderColor}`,
@@ -78,14 +78,14 @@ export default function ClauseCard({ clause }: ClauseCardProps) {
 
             {/* Recommendation */}
             <div className="mt-3 flex items-start gap-2 p-3 rounded-lg"
-              style={{ background: 'rgba(201,168,76,0.06)', border: '1px solid rgba(201,168,76,0.12)' }}>
+              style={{ background: 'var(--accent-dim)', border: '1px solid var(--accent-dim)' }}>
               <Lightbulb className="w-3.5 h-3.5 text-accent shrink-0 mt-0.5" />
               <p className="text-text-secondary text-xs leading-relaxed">{clause.recommendation}</p>
             </div>
 
             {/* Toggle */}
             <button onClick={() => setExpanded(!expanded)}
-              className="mt-2.5 flex items-center gap-1.5 text-text-muted hover:text-text-secondary transition-colors text-xs"
+              className="mt-2.5 flex items-center gap-1.5 text-text-muted hover:text-accent transition-colors text-xs"
             >
               <ChevronDown className={`w-3 h-3 transition-transform ${expanded ? 'rotate-180' : ''}`} />
               {expanded ? 'Hide' : 'View'} original clause

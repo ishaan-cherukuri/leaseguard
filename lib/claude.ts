@@ -1,8 +1,8 @@
-import OpenAI from 'openai'
+import Anthropic from '@anthropic-ai/sdk'
 import type { ClaudeAnalysisResult } from '@/types'
 
-const client = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+const client = new Anthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY,
 })
 
 const SYSTEM_PROMPT = `You are LeaseGuard, an expert contract and lease analyzer. Your job is to protect consumers from unfair, illegal, or financially harmful contract terms. You analyze documents with the precision of a real estate attorney combined with the clarity of a consumer advocate.
@@ -50,55 +50,53 @@ export async function analyzeContract(
 ): Promise<ClaudeAnalysisResult> {
   const timeoutMs = 60_000
 
-  async function callOpenAI(strict = false): Promise<ClaudeAnalysisResult> {
+  async function callClaude(): Promise<ClaudeAnalysisResult> {
     const controller = new AbortController()
     const timer = setTimeout(() => controller.abort(), timeoutMs)
 
     try {
-      const response = await client.chat.completions.create(
-        {
-          model: 'gpt-4o',
-          response_format: { type: 'json_object' },
-          messages: [
-            {
-              role: 'system',
-              content: strict
-                ? SYSTEM_PROMPT + '\n\nCRITICAL: Return ONLY raw JSON. No text before or after.'
-                : SYSTEM_PROMPT,
-            },
-            {
-              role: 'user',
-              content: buildUserMessage(extractedText),
-            },
-          ],
-        },
-        { signal: controller.signal }
-      )
+      const response = await client.messages.create({
+        model: 'claude-sonnet-4-5',
+        max_tokens: 4096,
+        system: SYSTEM_PROMPT,
+        messages: [
+          {
+            role: 'user',
+            content: buildUserMessage(extractedText),
+          },
+        ],
+      })
 
-      const raw = response.choices[0]?.message?.content?.trim() ?? ''
-      console.log('[OpenAI] Raw response (first 300 chars):', raw.slice(0, 300))
+      const raw = response.content[0].type === 'text'
+        ? response.content[0].text.trim()
+        : ''
 
-      return JSON.parse(raw) as ClaudeAnalysisResult
+      console.log('[Claude] Raw response (first 300 chars):', raw.slice(0, 300))
+
+      // Strip markdown code fences if present
+      const cleaned = raw.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/i, '').trim()
+      return JSON.parse(cleaned) as ClaudeAnalysisResult
     } finally {
       clearTimeout(timer)
     }
   }
 
   try {
-    return await callOpenAI(false)
+    return await callClaude()
   } catch (firstError) {
     const err = firstError as Error
-    console.error('[OpenAI] First attempt failed:', err.message)
+    console.error('[Claude] First attempt failed:', err.message)
 
     if (err.name === 'AbortError') {
       throw new Error('Analysis timed out. Please try again.')
     }
 
+    // Retry once
     try {
-      return await callOpenAI(true)
+      return await callClaude()
     } catch (secondError) {
       const err2 = secondError as Error
-      console.error('[OpenAI] Second attempt failed:', err2.message)
+      console.error('[Claude] Second attempt failed:', err2.message)
 
       if (err2.name === 'AbortError') {
         throw new Error('Analysis timed out. Please try again.')

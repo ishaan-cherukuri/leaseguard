@@ -24,16 +24,23 @@ export async function POST(request: NextRequest) {
     case 'checkout.session.completed': {
       const session = event.data.object as Stripe.Checkout.Session
       const customerId = session.customer as string
-      const subscriptionId = session.subscription as string
+      const subscriptionId = session.subscription as string | null
       const userId = session.metadata?.userId
+      const plan = (session.metadata?.plan ?? 'guard') as 'shield' | 'guard' | 'sentinel'
 
       if (userId) {
         await supabase
           .from('profiles')
           .update({
             stripe_customer_id: customerId,
-            subscription_id: subscriptionId,
+            subscription_id: subscriptionId ?? null,
             subscription_status: 'active',
+            plan,
+            // Reset monthly counter on new subscription (not shield — it's one-time)
+            ...(plan !== 'shield' ? {
+              docs_used_this_month: 0,
+              docs_reset_at: new Date().toISOString(),
+            } : {}),
           })
           .eq('id', userId)
       }
@@ -44,17 +51,22 @@ export async function POST(request: NextRequest) {
       const sub = event.data.object as Stripe.Subscription
       await supabase
         .from('profiles')
-        .update({ subscription_status: 'canceled' })
+        .update({ subscription_status: 'canceled', plan: 'free', subscription_id: null })
         .eq('stripe_customer_id', sub.customer as string)
       break
     }
 
     case 'customer.subscription.updated': {
       const sub = event.data.object as Stripe.Subscription
-      const status = sub.status === 'active' ? 'active' : sub.status === 'canceled' ? 'canceled' : 'past_due'
+      const status = sub.status === 'active' ? 'active'
+        : sub.status === 'canceled' ? 'canceled'
+        : 'past_due'
       await supabase
         .from('profiles')
-        .update({ subscription_status: status })
+        .update({
+          subscription_status: status,
+          ...(status === 'canceled' ? { plan: 'free' } : {}),
+        })
         .eq('stripe_customer_id', sub.customer as string)
       break
     }
@@ -65,6 +77,22 @@ export async function POST(request: NextRequest) {
         .from('profiles')
         .update({ subscription_status: 'past_due' })
         .eq('stripe_customer_id', invoice.customer as string)
+      break
+    }
+
+    // Reset monthly doc counter on successful subscription renewal
+    case 'invoice.payment_succeeded': {
+      const invoice = event.data.object as Stripe.Invoice
+      // Only reset on recurring renewals (billing_reason = subscription_cycle), not first payment
+      if (invoice.billing_reason === 'subscription_cycle') {
+        await supabase
+          .from('profiles')
+          .update({
+            docs_used_this_month: 0,
+            docs_reset_at: new Date().toISOString(),
+          })
+          .eq('stripe_customer_id', invoice.customer as string)
+      }
       break
     }
 

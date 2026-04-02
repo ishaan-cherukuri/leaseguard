@@ -4,9 +4,12 @@ create table public.profiles (
   email text not null,
   full_name text,
   stripe_customer_id text,
-  subscription_status text default 'free', -- 'free' | 'active' | 'canceled'
+  subscription_status text default 'free', -- 'free' | 'active' | 'canceled' | 'past_due'
   subscription_id text,
-  free_analyses_used integer default 0,
+  plan text default 'free',               -- 'free' | 'shield' | 'guard' | 'sentinel'
+  free_analyses_used integer default 0,   -- used by shield (one-time) and legacy free tier
+  docs_used_this_month integer default 0, -- used by free/guard/sentinel (resets monthly)
+  docs_reset_at timestamptz default now(), -- when docs_used_this_month was last reset
   created_at timestamptz default now()
 );
 

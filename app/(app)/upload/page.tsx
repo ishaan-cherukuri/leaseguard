@@ -2,8 +2,12 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Upload, AlertCircle, X, FileText } from 'lucide-react'
+import { Upload, AlertCircle, X, FileText, Zap } from 'lucide-react'
+import Link from 'next/link'
 import UploadZone from '@/components/UploadZone'
+import { createClient } from '@/lib/supabase/client'
+import { PLAN_LIMITS } from '@/types'
+import type { PlanType } from '@/types'
 
 const DOCUMENT_TYPES = [
   { value: 'lease', label: 'Lease Agreement' },
@@ -45,8 +49,34 @@ export default function UploadPage() {
 
   async function handleAnalyze() {
     if (!file) return
-    setLoading(true)
     setError(null)
+
+    // Check limit client-side first — instant redirect, no loading flash
+    const supabase = createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (user) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('plan, docs_used_this_month, free_analyses_used, docs_reset_at, created_at')
+        .eq('id', user.id)
+        .single()
+
+      if (profile) {
+        const plan: PlanType = profile.plan ?? 'free'
+        const limit = PLAN_LIMITS[plan]
+        const resetAt = new Date(profile.docs_reset_at ?? profile.created_at)
+        const now = new Date()
+        const isNewMonth = now.getMonth() !== resetAt.getMonth() || now.getFullYear() !== resetAt.getFullYear()
+        const docsUsed = isNewMonth ? 0 : (plan === 'shield' ? (profile.free_analyses_used ?? 0) : (profile.docs_used_this_month ?? 0))
+
+        if (docsUsed >= limit) {
+          router.push('/upgrade')
+          return
+        }
+      }
+    }
+
+    setLoading(true)
     setStage(0)
 
     const t1 = setTimeout(() => setStage(1), 5000)
@@ -61,19 +91,23 @@ export default function UploadPage() {
       const data = await res.json()
 
       if (!res.ok) {
-        setError(res.status === 402
-          ? 'You have used your free word allowance. Paid plans are not available yet — check back soon.'
-          : (data.error ?? 'Analysis failed. Please try again.'))
+        if (res.status === 402) {
+          router.push('/upgrade')
+          return
+        }
+        setError(data.error ?? 'Analysis failed. Please try again.')
+        setLoading(false)
         return
       }
 
+      // Stay in loading state — navigate directly, no flash back to ready screen
       router.push(`/analysis/${data.analysisId}`)
     } catch {
       setError('Something went wrong. Please try again.')
+      setLoading(false)
     } finally {
       clearTimeout(t1)
       clearTimeout(t2)
-      setLoading(false)
     }
   }
 
@@ -213,6 +247,19 @@ export default function UploadPage() {
         <h1 className="font-display text-3xl font-bold text-text-primary">New Analysis</h1>
         <p className="text-text-secondary mt-1">Upload a PDF contract to analyze</p>
       </div>
+
+      {error && error.includes('upgrade') && (
+        <div className="mb-6 p-4 rounded-xl border flex items-center justify-between gap-4"
+          style={{ background: 'var(--accent-dim)', borderColor: 'color-mix(in srgb, var(--accent) 25%, transparent)' }}>
+          <div className="flex items-center gap-3">
+            <Zap className="w-4 h-4 text-accent shrink-0" />
+            <p className="text-text-primary text-sm">You&apos;ve used your free analysis.</p>
+          </div>
+          <Link href="/upgrade" className="btn-primary px-4 py-2 rounded-lg text-xs font-semibold shrink-0">
+            Upgrade
+          </Link>
+        </div>
+      )}
 
       <div className="space-y-6">
         <div>

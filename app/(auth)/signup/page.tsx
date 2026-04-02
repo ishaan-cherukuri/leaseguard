@@ -50,7 +50,7 @@ export default function SignupPage() {
       <div
         className="min-h-screen flex items-center justify-center px-4"
         style={{
-          background: `radial-gradient(ellipse 80% 50% at 50% -20%, rgba(201,168,76,0.1), transparent), #0A0B0D`,
+          background: `radial-gradient(ellipse 80% 50% at 50% -20%, var(--accent-dim), transparent), var(--background)`,
         }}
       >
         <div className="w-full max-w-md text-center">
@@ -83,7 +83,7 @@ export default function SignupPage() {
     <div
       className="min-h-screen flex items-center justify-center px-4"
       style={{
-        background: `radial-gradient(ellipse 80% 50% at 50% -20%, rgba(201,168,76,0.1), transparent), #0A0B0D`,
+        background: `radial-gradient(ellipse 80% 50% at 50% -20%, var(--accent-dim), transparent), var(--background)`,
       }}
     >
       <div className="w-full max-w-md">
@@ -162,7 +162,7 @@ export default function SignupPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 px-6 rounded-md bg-accent text-background font-semibold hover:bg-accent-hover transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="btn-primary w-full py-3 rounded-xl text-sm disabled:opacity-50 disabled:pointer-events-none"
             >
               {loading ? 'Creating account...' : 'Create account'}
             </button>

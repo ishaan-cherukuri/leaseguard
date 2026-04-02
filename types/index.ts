@@ -1,8 +1,16 @@
 export type RiskLevel = 'low' | 'medium' | 'high' | 'critical'
 export type SeverityLevel = 'critical' | 'warning' | 'info'
 export type SubscriptionStatus = 'free' | 'active' | 'canceled' | 'past_due'
+export type PlanType = 'free' | 'shield' | 'guard' | 'sentinel'
 export type DocumentType = 'lease' | 'rental' | 'gym' | 'car' | 'employment' | 'insurance' | 'other'
 export type AnalysisStatus = 'processing' | 'complete' | 'failed'
+
+export const PLAN_LIMITS: Record<PlanType, number> = {
+  free: 1,
+  shield: 1,
+  guard: 4,
+  sentinel: 12,
+}
 
 export interface FlaggedClause {
   id: string
@@ -46,7 +54,10 @@ export interface Profile {
   stripe_customer_id: string | null
   subscription_status: SubscriptionStatus
   subscription_id: string | null
+  plan: PlanType
   free_analyses_used: number
+  docs_used_this_month: number
+  docs_reset_at: string
   created_at: string
 }
 

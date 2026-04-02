@@ -13,10 +13,10 @@
     --text-primary: #F0F1F8;
     --text-secondary: #6B7094;
     --text-muted: #3D4160;
-    --accent: #C9A84C;
-    --accent-hover: #E2C06A;
-    --accent-dim: rgba(201, 168, 76, 0.12);
-    --accent-glow: rgba(201, 168, 76, 0.25);
+    --accent: #C9748A;
+    --accent-hover: #DC8FA4;
+    --accent-dim: rgba(201, 116, 138, 0.12);
+    --accent-glow: rgba(201, 116, 138, 0.28);
     --rose: #E8445A;
     --rose-dim: rgba(232, 68, 90, 0.12);
     --rose-glow: rgba(232, 68, 90, 0.2);
@@ -78,14 +78,14 @@
 
 /* ── Gradient text ─────────────────────────────────── */
 .gradient-text-gold {
-  background: linear-gradient(135deg, #E2C06A 0%, #C9A84C 50%, #A07830 100%);
+  background: linear-gradient(135deg, #EDAFC0 0%, #C9748A 50%, #9E4F66 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
 .gradient-text-rose-gold {
-  background: linear-gradient(135deg, #E8445A 0%, #C9A84C 100%);
+  background: linear-gradient(135deg, #EDAFC0 0%, #C9748A 50%, #D4A07A 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -100,15 +100,15 @@
 }
 
 .glass-gold {
-  background: linear-gradient(135deg, rgba(201, 168, 76, 0.06) 0%, rgba(14, 16, 24, 0.8) 100%);
+  background: linear-gradient(135deg, rgba(201, 116, 138, 0.06) 0%, rgba(14, 16, 24, 0.8) 100%);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(201, 168, 76, 0.15);
+  border: 1px solid rgba(201, 116, 138, 0.18);
 }
 
 /* ── Glow effects ──────────────────────────────────── */
 .glow-gold {
-  box-shadow: 0 0 30px rgba(201, 168, 76, 0.15), 0 0 60px rgba(201, 168, 76, 0.05);
+  box-shadow: 0 0 30px rgba(201, 116, 138, 0.22), 0 0 60px rgba(201, 116, 138, 0.08);
 }
 
 .glow-rose {
@@ -125,7 +125,7 @@
   inset: -1px;
   border-radius: inherit;
   padding: 1px;
-  background: linear-gradient(135deg, rgba(201, 168, 76, 0.4), rgba(232, 68, 90, 0.2), rgba(201, 168, 76, 0.1));
+  background: linear-gradient(135deg, rgba(201, 116, 138, 0.45), rgba(212, 160, 122, 0.25), rgba(201, 116, 138, 0.12));
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
@@ -155,7 +155,7 @@
   100% { background-position: 200% center; }
 }
 .shimmer {
-  background: linear-gradient(90deg, transparent 0%, rgba(201, 168, 76, 0.1) 50%, transparent 100%);
+  background: linear-gradient(90deg, transparent 0%, rgba(201, 116, 138, 0.12) 50%, transparent 100%);
   background-size: 200% auto;
   animation: shimmer 3s linear infinite;
 }
@@ -182,6 +182,65 @@
   to { opacity: 1; transform: translateY(0); }
 }
 .fade-in-up { animation: fade-in-up 0.5s ease forwards; }
+
+/* ── Global clickable lift ──────────────────────────── */
+a, button {
+  transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), color 0.15s ease, opacity 0.15s ease;
+}
+a:hover, button:hover { transform: translateY(-1px); }
+a:active, button:active { transform: translateY(0px) scale(0.98); }
+
+/* ── Primary button ────────────────────────────────── */
+.btn-primary {
+  background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 65%, #000));
+  color: var(--background);
+  font-weight: 600;
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease, filter 0.2s ease;
+}
+.btn-primary:hover {
+  transform: translateY(-3px) scale(1.02);
+  filter: brightness(1.08);
+  box-shadow: 0 8px 22px color-mix(in srgb, var(--accent) 32%, transparent);
+}
+.btn-primary:active {
+  transform: translateY(0px) scale(0.98);
+  filter: brightness(0.95);
+}
+
+/* ── Ghost button ───────────────────────────────────── */
+.btn-ghost {
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), border-color 0.15s ease, color 0.15s ease, box-shadow 0.2s ease;
+}
+.btn-ghost:hover {
+  transform: translateY(-3px) scale(1.01);
+  border-color: var(--accent);
+  color: var(--text-primary);
+  box-shadow: 0 5px 16px color-mix(in srgb, var(--accent) 16%, transparent);
+}
+.btn-ghost:active {
+  transform: translateY(0px) scale(0.98);
+}
+
+/* ── Interactive card ───────────────────────────────── */
+.card-interactive {
+  transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.22s ease, border-color 0.2s ease;
+}
+.card-interactive:hover {
+  transform: translateY(-5px) scale(1.01);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18), 0 0 0 1px color-mix(in srgb, var(--accent) 22%, transparent);
+}
+.card-interactive:active {
+  transform: translateY(-1px) scale(0.99);
+}
+
+/* ── Clickable lift ─────────────────────────────────── */
+.lift {
+  transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.lift:hover { transform: translateY(-3px); }
+.lift:active { transform: translateY(0px) scale(0.98); }
 
 /* ── Stagger children ──────────────────────────────── */
 .stagger > *:nth-child(1) { animation-delay: 0ms; }
