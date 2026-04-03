@@ -25,6 +25,7 @@
     --safe: #3ECF8E;
     --info: #5B8DEF;
     --radius: 0.75rem;
+    --button-ripple-color: rgba(201, 116, 138, 0.25);
   }
 
   .light {

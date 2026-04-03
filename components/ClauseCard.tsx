@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { ChevronDown, Lightbulb, AlertOctagon, AlertTriangle, Info, Scale } from 'lucide-react'
 import type { FlaggedClause, SeverityLevel } from '@/types'
+import { cn } from '@/lib/utils'
 
 interface ClauseCardProps {
   clause: FlaggedClause
@@ -45,7 +46,7 @@ export default function ClauseCard({ clause }: ClauseCardProps) {
 
   return (
     <div
-      className="rounded-xl overflow-hidden card-interactive"
+      className={cn("group relative rounded-xl overflow-hidden card-interactive will-change-transform")}
       style={{
         background: cfg.bgColor,
         border: `1px solid ${cfg.borderColor}`,
@@ -53,7 +54,13 @@ export default function ClauseCard({ clause }: ClauseCardProps) {
         borderLeftColor: cfg.color,
       }}
     >
-      <div className="p-4">
+      {/* Bento dot texture — always visible */}
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(201,116,138,0.06)_1px,transparent_1px)] bg-[length:4px_4px]" />
+      </div>
+      {/* Gradient shimmer — always visible */}
+      <div className="absolute inset-0 -z-10 rounded-xl bg-gradient-to-br from-accent/4 via-accent/8 to-transparent pointer-events-none" />
+      <div className="relative z-10 p-4">
         <div className="flex items-start gap-3">
           <cfg.Icon className="w-4 h-4 shrink-0 mt-0.5" style={{ color: cfg.color }} />
 
@@ -96,7 +103,7 @@ export default function ClauseCard({ clause }: ClauseCardProps) {
 
       {/* Original text */}
       {expanded && (
-        <div className="px-4 pb-4 pt-0">
+        <div className="relative z-10 px-4 pb-4 pt-0">
           <div className="rounded-lg overflow-hidden"
             style={{ background: 'rgba(8,9,16,0.6)', border: '1px solid rgba(255,255,255,0.04)' }}>
             <div className="px-3 py-1.5 border-b flex items-center gap-1.5"

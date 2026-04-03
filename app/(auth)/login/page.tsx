@@ -64,9 +64,14 @@ export default function LoginPage() {
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-xs font-medium text-text-secondary mb-2 uppercase tracking-wider">
-                Password
-              </label>
+              <div className="flex items-center justify-between mb-2">
+                <label htmlFor="password" className="block text-xs font-medium text-text-secondary uppercase tracking-wider">
+                  Password
+                </label>
+                <Link href="/forgot-password" className="text-xs text-accent hover:text-accent-hover transition-colors">
+                  Forgot password?
+                </Link>
+              </div>
               <div className="relative">
                 <input id="password" type={showPassword ? 'text' : 'password'} required value={password}
                   onChange={(e) => setPassword(e.target.value)}

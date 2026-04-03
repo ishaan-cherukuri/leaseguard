@@ -1,5 +1,7 @@
 import Link from 'next/link'
-import { Shield, ArrowRight, CheckCircle, Zap, Lock, TrendingUp, FileSearch, AlertTriangle, X } from 'lucide-react'
+import { Shield, ArrowRight, Zap, Lock, TrendingUp, FileSearch, AlertTriangle } from 'lucide-react'
+import { BackgroundPaths } from '@/components/ui/background-paths'
+import { PricingCard } from '@/components/ui/animated-glassy-pricing'
 
 export default function LandingPage() {
   return (
@@ -17,6 +19,11 @@ export default function LandingPage() {
 
       {/* Dot grid */}
       <div className="fixed inset-0 z-0 dot-grid opacity-40 pointer-events-none" />
+
+      {/* Animated background paths — hero only */}
+      <div className="fixed inset-0 z-0">
+        <BackgroundPaths />
+      </div>
 
       {/* Nav */}
       <nav className="relative z-10 flex items-center justify-between px-8 py-5 max-w-7xl mx-auto">
@@ -164,141 +171,43 @@ export default function LandingPage() {
           <p className="text-text-secondary">Start free. No card required.</p>
         </div>
 
-        <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-4">
-          {/* Free */}
-          <div className="p-7 rounded-2xl border border-border bg-surface flex flex-col">
-            <div className="mb-5">
-              <div className="w-9 h-9 rounded-xl mb-4 flex items-center justify-center"
-                style={{ background: 'var(--surface-raised)', border: '1px solid var(--border)' }}>
-                <X className="w-4 h-4 text-text-muted" />
-              </div>
-              <div className="text-text-secondary text-xs uppercase tracking-widest mb-3 font-semibold">Free</div>
-              <div className="flex items-end gap-1 mb-1">
-                <span className="font-display text-4xl font-bold text-text-primary">$0</span>
-              </div>
-              <p className="text-text-secondary text-xs">1 doc / month</p>
-            </div>
-            <ul className="space-y-2.5 mb-7 flex-1">
-              {[
-                { t: '1 contract per month', y: true },
-                { t: 'Risk score', y: true },
-                { t: 'Flagged clause list', y: true },
-                { t: 'Full explanations', y: false },
-                { t: 'Negotiation scripts', y: false },
-              ].map((f) => (
-                <li key={f.t} className="flex items-start gap-2.5 text-sm">
-                  <CheckCircle className="w-4 h-4 shrink-0 mt-0.5" style={{ color: f.y ? 'var(--safe)' : 'var(--border)' }} />
-                  <span style={{ color: f.y ? 'var(--text-secondary)' : 'var(--text-muted)' }}>{f.t}</span>
-                </li>
-              ))}
-            </ul>
-            <Link href="/signup" className="btn-ghost block text-center py-2.5 rounded-xl text-sm font-medium">
-              Get started free
-            </Link>
-          </div>
-
-          {/* Shield */}
-          <div className="p-7 rounded-2xl border border-border bg-surface flex flex-col">
-            <div className="mb-5">
-              <div className="w-9 h-9 rounded-xl mb-4 flex items-center justify-center"
-                style={{ background: 'var(--surface-raised)', border: '1px solid var(--border)' }}>
-                <Shield className="w-4 h-4 text-text-secondary" />
-              </div>
-              <div className="text-text-secondary text-xs uppercase tracking-widest mb-3 font-semibold">Shield</div>
-              <div className="flex items-end gap-1 mb-1">
-                <span className="font-display text-4xl font-bold text-text-primary">$14</span>
-                <span className="text-text-secondary text-sm mb-1.5">one-time</span>
-              </div>
-              <p className="text-text-secondary text-xs">1 doc included</p>
-            </div>
-            <ul className="space-y-2.5 mb-7 flex-1">
-              {[
-                { t: '1 contract analysis', y: true },
-                { t: 'Risk score', y: true },
-                { t: 'Full explanations', y: true },
-                { t: 'Negotiation scripts', y: true },
-                { t: '1 heavy doc = 1 credit', y: true },
-              ].map((f) => (
-                <li key={f.t} className="flex items-start gap-2.5 text-sm">
-                  <CheckCircle className="w-4 h-4 shrink-0 mt-0.5 text-safe" />
-                  <span className="text-text-secondary">{f.t}</span>
-                </li>
-              ))}
-            </ul>
-            <Link href="/signup" className="btn-ghost block text-center py-2.5 rounded-xl text-sm font-medium">
-              Get Shield — $14
-            </Link>
-          </div>
-
-          {/* Guard — featured */}
-          <div className="p-7 rounded-2xl relative overflow-hidden gradient-border glow-gold flex flex-col"
-            style={{ background: 'linear-gradient(135deg, color-mix(in srgb, var(--accent) 8%, transparent) 0%, var(--surface) 70%)' }}>
-            <div className="absolute top-4 right-4 px-2 py-0.5 rounded-full text-xs font-bold btn-primary">
-              POPULAR
-            </div>
-            <div className="mb-5">
-              <div className="w-9 h-9 rounded-xl mb-4 flex items-center justify-center"
-                style={{ background: 'var(--accent-dim)', border: '1px solid color-mix(in srgb, var(--accent) 25%, transparent)' }}>
-                <Lock className="w-4 h-4 text-accent" />
-              </div>
-              <div className="text-accent text-xs uppercase tracking-widest mb-3 font-semibold">Guard</div>
-              <div className="flex items-end gap-1 mb-1">
-                <span className="font-display text-4xl font-bold text-text-primary">$9.99</span>
-                <span className="text-text-secondary text-sm mb-1.5">/mo</span>
-              </div>
-              <p className="text-text-secondary text-xs">4 docs / month</p>
-            </div>
-            <ul className="space-y-2.5 mb-7 flex-1">
-              {[
-                '4 contracts per month',
-                'Risk score',
-                'Full explanations',
-                'Negotiation scripts',
-                '1 heavy doc = 2 credits',
-              ].map((f) => (
-                <li key={f} className="flex items-start gap-2.5 text-sm">
-                  <CheckCircle className="w-4 h-4 shrink-0 mt-0.5 text-accent" />
-                  <span className="text-text-secondary">{f}</span>
-                </li>
-              ))}
-            </ul>
-            <Link href="/signup" className="btn-primary block text-center py-2.5 rounded-xl text-sm font-semibold">
-              Start Guard — $9.99/mo
-            </Link>
-          </div>
-
-          {/* Sentinel */}
-          <div className="p-7 rounded-2xl border border-border bg-surface flex flex-col">
-            <div className="mb-5">
-              <div className="w-9 h-9 rounded-xl mb-4 flex items-center justify-center"
-                style={{ background: 'color-mix(in srgb, var(--text-primary) 6%, transparent)', border: '1px solid color-mix(in srgb, var(--text-primary) 12%, transparent)' }}>
-                <Zap className="w-4 h-4 text-text-primary" />
-              </div>
-              <div className="text-text-secondary text-xs uppercase tracking-widest mb-3 font-semibold">Sentinel</div>
-              <div className="flex items-end gap-1 mb-1">
-                <span className="font-display text-4xl font-bold text-text-primary">$24.99</span>
-                <span className="text-text-secondary text-sm mb-1.5">/mo</span>
-              </div>
-              <p className="text-text-secondary text-xs">12 docs / month</p>
-            </div>
-            <ul className="space-y-2.5 mb-7 flex-1">
-              {[
-                '12 contracts per month',
-                'Risk score',
-                'Full explanations',
-                'Negotiation scripts',
-                '1 heavy doc = 2 credits',
-              ].map((f) => (
-                <li key={f} className="flex items-start gap-2.5 text-sm">
-                  <CheckCircle className="w-4 h-4 shrink-0 mt-0.5 text-safe" />
-                  <span className="text-text-secondary">{f}</span>
-                </li>
-              ))}
-            </ul>
-            <Link href="/signup" className="btn-ghost block text-center py-2.5 rounded-xl text-sm font-medium">
-              Get Sentinel — $24.99/mo
-            </Link>
-          </div>
+        <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-4 items-center">
+          <PricingCard
+            planName="Free"
+            description="First-time users & one-time exploration."
+            price="0"
+            features={['1 contract per month', 'Risk score', 'Flagged clause list']}
+            buttonText="Get started free"
+            buttonVariant="secondary"
+          />
+          <PricingCard
+            planName="Shield"
+            description="Moving somewhere new? One analysis, full protection."
+            price="14"
+            priceLabel="one-time"
+            features={['1 contract analysis', 'Full explanations', 'Negotiation scripts', 'Risk score']}
+            buttonText="Get Shield — $14"
+            buttonVariant="secondary"
+          />
+          <PricingCard
+            planName="Guard"
+            description="For renters and freelancers who sign often."
+            price="9.99"
+            priceLabel="/mo"
+            features={['4 contracts / month', 'Full explanations', 'Negotiation scripts', '1 heavy doc = 2 credits']}
+            buttonText="Start Guard — $9.99/mo"
+            isPopular
+            buttonVariant="primary"
+          />
+          <PricingCard
+            planName="Sentinel"
+            description="Landlords, small biz, and power users."
+            price="24.99"
+            priceLabel="/mo"
+            features={['12 contracts / month', 'Full explanations', 'Negotiation scripts', '1 heavy doc = 2 credits']}
+            buttonText="Get Sentinel — $24.99/mo"
+            buttonVariant="secondary"
+          />
         </div>
 
         {/* Heavy doc footnote */}
