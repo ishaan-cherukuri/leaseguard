@@ -51,5 +51,7 @@ export default async function AnalysisPage({ params }: { params: Promise<{ id: s
     // PDF preview unavailable — not critical
   }
 
-  return <AnalysisResultsPanel analysis={analysis} pdfSignedUrl={pdfSignedUrl} />
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const typedAnalysis = { ...analysis, ai_detection_result: analysis.ai_detection_result as any }
+  return <AnalysisResultsPanel analysis={typedAnalysis} pdfSignedUrl={pdfSignedUrl} />
 }
