@@ -69,6 +69,12 @@ create trigger on_auth_user_created
   after insert on auth.users
   for each row execute procedure public.handle_new_user();
 
+-- Notification preferences columns (run if not yet added)
+alter table public.profiles
+  add column if not exists notif_analysis_complete boolean default true,
+  add column if not exists notif_weekly_digest boolean default false,
+  add column if not exists notif_billing_alerts boolean default true;
+
 -- Storage policies for contracts bucket
 create policy "Authenticated users can upload contracts"
 on storage.objects for insert

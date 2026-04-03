@@ -31,7 +31,8 @@ export async function proxy(request: NextRequest) {
   // Protect app routes
   const isAppRoute = pathname.startsWith('/dashboard') ||
     pathname.startsWith('/upload') ||
-    pathname.startsWith('/analysis')
+    pathname.startsWith('/analysis') ||
+    pathname.startsWith('/settings')
 
   if (isAppRoute && !user) {
     const loginUrl = request.nextUrl.clone()

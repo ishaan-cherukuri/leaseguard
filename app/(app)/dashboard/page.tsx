@@ -1,7 +1,8 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { Upload, FileText, AlertCircle, TrendingUp, Shield, Lock, Zap, X } from 'lucide-react'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createServiceClient } from '@/lib/supabase/server'
+import { stripe } from '@/lib/stripe'
 import type { Analysis, Profile, PlanType } from '@/types'
 import { PLAN_LIMITS } from '@/types'
 
@@ -30,10 +31,38 @@ function RiskBadge({ score, level }: { score: number; level: string }) {
   )
 }
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ upgrade?: string; session_id?: string }>
+}) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
+
+  // Verify Stripe session on return from checkout — don't rely on webhook alone
+  const params = await searchParams
+  if (params.upgrade === 'success' && params.session_id) {
+    try {
+      const session = await stripe.checkout.sessions.retrieve(params.session_id)
+      if (session.payment_status === 'paid' || session.status === 'complete') {
+        const plan = (session.metadata?.plan ?? 'guard') as PlanType
+        const serviceClient = await createServiceClient()
+        await serviceClient.from('profiles').update({
+          subscription_status: 'active',
+          plan,
+          stripe_customer_id: session.customer as string,
+          subscription_id: session.subscription as string ?? null,
+          ...(plan !== 'shield' ? {
+            docs_used_this_month: 0,
+            docs_reset_at: new Date().toISOString(),
+          } : {}),
+        }).eq('id', user.id)
+      }
+    } catch (e) {
+      console.error('[dashboard] session verify failed:', e)
+    }
+  }
 
   const [{ data: analyses }, { data: profile }] = await Promise.all([
     supabase.from('analyses').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
@@ -65,7 +94,9 @@ export default async function DashboardPage() {
       <div className="flex items-center justify-between mb-8 relative">
         <div>
           <h1 className="font-display text-3xl font-bold text-text-primary">
-            {typedProfile?.full_name ? `Welcome back, ${typedProfile.full_name.split(' ')[0]}` : 'Dashboard'}
+            {typedProfile?.full_name
+              ? <><span className="text-text-primary">Welcome back, </span><span className="stat-value">{typedProfile.full_name.split(' ')[0]}</span></>
+              : 'Dashboard'}
           </h1>
           <p className="text-text-secondary mt-1 text-sm">Your contract analysis history</p>
         </div>
@@ -112,7 +143,7 @@ export default async function DashboardPage() {
 
           {/* Usage count */}
           <div className="text-right shrink-0">
-            <p className="text-text-primary font-mono text-sm font-semibold">{docsUsed} / {limit}</p>
+            <p className="font-mono text-sm font-semibold stat-value">{docsUsed} / {limit}</p>
             <p className="text-text-muted text-xs">{plan === 'shield' ? 'used' : 'this month'}</p>
           </div>
         </div>

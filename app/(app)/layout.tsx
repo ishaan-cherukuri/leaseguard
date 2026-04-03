@@ -1,9 +1,9 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { Shield, LayoutDashboard, Upload, LogOut } from 'lucide-react'
+import { Shield, LayoutDashboard, Upload, LogOut, CreditCard } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import FeedbackModal from '@/components/FeedbackModal'
-import ThemeToggle from '@/components/ThemeToggle'
+import SettingsPopover from '@/components/SettingsPopover'
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient()
@@ -34,16 +34,22 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         {/* Nav */}
         <nav className="flex-1 px-3 py-4 space-y-0.5">
           <Link href="/dashboard"
-            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-text-secondary hover:text-text-primary hover:bg-surface-raised transition-all text-sm group"
+            className="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-text-secondary text-sm group"
           >
-            <LayoutDashboard className="w-4 h-4 group-hover:text-accent transition-colors" />
+            <LayoutDashboard className="w-4 h-4 transition-colors duration-150" />
             Dashboard
           </Link>
           <Link href="/upload"
-            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-text-secondary hover:text-text-primary hover:bg-surface-raised transition-all text-sm group"
+            className="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-text-secondary text-sm group"
           >
-            <Upload className="w-4 h-4 group-hover:text-accent transition-colors" />
+            <Upload className="w-4 h-4 transition-colors duration-150" />
             New Analysis
+          </Link>
+          <Link href="/upgrade"
+            className="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-text-secondary text-sm group"
+          >
+            <CreditCard className="w-4 h-4 transition-colors duration-150" />
+            Billing
           </Link>
         </nav>
 
@@ -52,13 +58,13 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <div className="px-3 py-2.5">
             <p className="text-xs text-text-muted truncate">{user.email}</p>
           </div>
-          <ThemeToggle />
           <FeedbackModal />
           <form action="/api/auth/signout" method="post">
             <button type="submit"
-              className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-text-secondary hover:text-critical hover:bg-critical/5 transition-all text-sm w-full group"
+              className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-text-secondary hover:text-critical hover:bg-critical/5 text-sm w-full"
+              style={{ transition: 'transform 0.2s cubic-bezier(0.34,1.56,0.64,1), color 0.15s ease, background 0.15s ease' }}
             >
-              <LogOut className="w-4 h-4" />
+              <LogOut className="w-4 h-4 transition-colors duration-150" />
               Sign out
             </button>
           </form>
@@ -69,6 +75,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <main className="flex-1 overflow-auto relative">
         {children}
       </main>
+
+      {/* Fixed settings circle — persists on all app pages */}
+      <SettingsPopover />
     </div>
   )
 }

@@ -58,6 +58,9 @@ export interface Profile {
   free_analyses_used: number
   docs_used_this_month: number
   docs_reset_at: string
+  notif_analysis_complete: boolean | null
+  notif_weekly_digest: boolean | null
+  notif_billing_alerts: boolean | null
   created_at: string
 }
 

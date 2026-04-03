@@ -27,11 +27,11 @@ export default function LandingPage() {
           <span className="font-display text-lg font-bold text-text-primary tracking-tight">LeaseGuard</span>
         </div>
         <div className="hidden md:flex items-center gap-6">
-          <Link href="#features" className="text-sm text-text-secondary hover:text-text-primary transition-colors">Features</Link>
-          <Link href="#pricing" className="text-sm text-text-secondary hover:text-text-primary transition-colors">Pricing</Link>
+          <Link href="#features" className="text-sm text-text-secondary hover:text-accent transition-colors">Features</Link>
+          <Link href="#pricing" className="text-sm text-text-secondary hover:text-accent transition-colors">Pricing</Link>
         </div>
         <div className="flex items-center gap-3">
-          <Link href="/login" className="text-sm text-text-secondary hover:text-text-primary transition-colors px-4 py-2">
+          <Link href="/login" className="text-sm text-text-secondary hover:text-accent transition-colors px-4 py-2">
             Sign in
           </Link>
           <Link href="/signup"
@@ -52,7 +52,7 @@ export default function LandingPage() {
         <h1 className="font-display text-6xl md:text-8xl font-bold leading-none tracking-tight mb-6 fade-in-up" style={{ animationDelay: '80ms' }}>
           <span className="text-text-primary">Your lease</span>
           <br />
-          <span className="gradient-text-gold">has secrets.</span>
+          <span className="gradient-text-gold stat-value">has secrets.</span>
         </h1>
 
         <p className="text-lg md:text-xl text-text-secondary max-w-xl mx-auto mb-12 leading-relaxed fade-in-up" style={{ animationDelay: '160ms' }}>
@@ -81,7 +81,7 @@ export default function LandingPage() {
             { value: '< 60s', label: 'average analysis time' },
           ].map((stat) => (
             <div key={stat.label} className="text-center">
-              <div className="font-display text-3xl font-bold gradient-text-gold">{stat.value}</div>
+              <div className="font-display text-3xl font-bold stat-value">{stat.value}</div>
               <div className="text-text-secondary text-sm mt-0.5">{stat.label}</div>
             </div>
           ))}
@@ -123,7 +123,7 @@ export default function LandingPage() {
               gradient: 'from-safe/10 to-transparent',
             },
           ].map((f) => (
-            <div key={f.title} className="group relative rounded-2xl p-6 border border-border bg-surface hover:border-opacity-60 transition-all overflow-hidden cursor-default">
+            <div key={f.title} className="card-interactive group relative rounded-2xl p-6 border border-border bg-surface overflow-hidden">
               <div className={`absolute inset-0 bg-gradient-to-br ${f.gradient} opacity-0 group-hover:opacity-100 transition-opacity`} />
               <div className="relative z-10">
                 <div className="w-10 h-10 rounded-xl mb-5 flex items-center justify-center"
@@ -145,7 +145,7 @@ export default function LandingPage() {
             { step: '03', title: 'Analyze', description: 'Claude reads it like a $500/hr attorney, in under a minute.' },
             { step: '04', title: 'Review', description: 'Get your risk score, flagged clauses, and negotiation points.' },
           ].map((item, i) => (
-            <div key={item.step} className="relative p-5 rounded-xl border border-border bg-surface-raised">
+            <div key={item.step} className="card-interactive relative p-5 rounded-xl border border-border bg-surface-raised">
               {i < 3 && (
                 <div className="hidden md:block absolute top-1/2 -right-2 w-4 h-px bg-border z-10" />
               )}

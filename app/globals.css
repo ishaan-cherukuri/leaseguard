@@ -76,6 +76,32 @@
 /* ── Typography ────────────────────────────────────── */
 .font-display { font-family: var(--font-playfair), serif; }
 
+/* ── Rose gold text (dark mode pop) ───────────────── */
+:root .accent-text,
+.accent-text {
+  color: var(--accent);
+}
+
+/* In dark mode, headings get a subtle rose gold tint on key words */
+:root:not(.light) h1 .highlight,
+:root:not(.light) h2 .highlight {
+  color: var(--accent);
+}
+
+/* Stat numbers pop with rose gold in dark mode */
+:root:not(.light) .stat-value {
+  background: linear-gradient(135deg, #EDAFC0 0%, #C9748A 60%, #DC8FA4 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Section labels / eyebrow text */
+:root:not(.light) .eyebrow {
+  color: var(--accent);
+  letter-spacing: 0.1em;
+}
+
 /* ── Gradient text ─────────────────────────────────── */
 .gradient-text-gold {
   background: linear-gradient(135deg, #EDAFC0 0%, #C9748A 50%, #9E4F66 100%);
@@ -185,25 +211,25 @@
 
 /* ── Global clickable lift ──────────────────────────── */
 a, button {
-  transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), color 0.15s ease, opacity 0.15s ease;
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), color 0.15s ease, opacity 0.15s ease;
 }
-a:hover, button:hover { transform: translateY(-1px); }
-a:active, button:active { transform: translateY(0px) scale(0.98); }
+a:hover, button:hover { transform: translateY(-2px); }
+a:active, button:active { transform: translateY(0px) scale(0.97); }
 
 /* ── Primary button ────────────────────────────────── */
 .btn-primary {
   background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 65%, #000));
   color: var(--background);
   font-weight: 600;
-  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease, filter 0.2s ease;
+  transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.22s ease, filter 0.2s ease;
 }
 .btn-primary:hover {
-  transform: translateY(-3px) scale(1.02);
-  filter: brightness(1.08);
-  box-shadow: 0 8px 22px color-mix(in srgb, var(--accent) 32%, transparent);
+  transform: translateY(-4px) scale(1.03);
+  filter: brightness(1.1);
+  box-shadow: 0 10px 28px color-mix(in srgb, var(--accent) 40%, transparent), 0 2px 8px color-mix(in srgb, var(--accent) 20%, transparent);
 }
 .btn-primary:active {
-  transform: translateY(0px) scale(0.98);
+  transform: translateY(0px) scale(0.97);
   filter: brightness(0.95);
 }
 
@@ -211,16 +237,17 @@ a:active, button:active { transform: translateY(0px) scale(0.98); }
 .btn-ghost {
   border: 1px solid var(--border);
   color: var(--text-secondary);
-  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), border-color 0.15s ease, color 0.15s ease, box-shadow 0.2s ease;
+  transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1), border-color 0.15s ease, color 0.15s ease, box-shadow 0.22s ease, background 0.15s ease;
 }
 .btn-ghost:hover {
-  transform: translateY(-3px) scale(1.01);
+  transform: translateY(-4px) scale(1.02);
   border-color: var(--accent);
-  color: var(--text-primary);
-  box-shadow: 0 5px 16px color-mix(in srgb, var(--accent) 16%, transparent);
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 6%, transparent);
+  box-shadow: 0 8px 20px color-mix(in srgb, var(--accent) 20%, transparent), 0 0 0 1px color-mix(in srgb, var(--accent) 25%, transparent);
 }
 .btn-ghost:active {
-  transform: translateY(0px) scale(0.98);
+  transform: translateY(0px) scale(0.97);
 }
 
 /* ── Interactive card ───────────────────────────────── */
@@ -228,19 +255,37 @@ a:active, button:active { transform: translateY(0px) scale(0.98); }
   transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.22s ease, border-color 0.2s ease;
 }
 .card-interactive:hover {
-  transform: translateY(-5px) scale(1.01);
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18), 0 0 0 1px color-mix(in srgb, var(--accent) 22%, transparent);
+  transform: translateY(-6px) scale(1.015);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.22), 0 0 0 1px color-mix(in srgb, var(--accent) 30%, transparent);
 }
 .card-interactive:active {
   transform: translateY(-1px) scale(0.99);
 }
 
+/* ── Sidebar nav link ───────────────────────────────── */
+.nav-link {
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), color 0.15s ease, background 0.15s ease, box-shadow 0.2s ease;
+  position: relative;
+}
+.nav-link:hover {
+  transform: translateX(3px);
+  color: var(--accent) !important;
+  background: color-mix(in srgb, var(--accent) 8%, transparent) !important;
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+.nav-link:hover svg {
+  color: var(--accent);
+}
+.nav-link:active {
+  transform: translateX(1px) scale(0.99);
+}
+
 /* ── Clickable lift ─────────────────────────────────── */
 .lift {
-  transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
-.lift:hover { transform: translateY(-3px); }
-.lift:active { transform: translateY(0px) scale(0.98); }
+.lift:hover { transform: translateY(-4px); }
+.lift:active { transform: translateY(0px) scale(0.97); }
 
 /* ── Stagger children ──────────────────────────────── */
 .stagger > *:nth-child(1) { animation-delay: 0ms; }
