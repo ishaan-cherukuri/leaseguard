@@ -140,25 +140,34 @@ export default function UpgradePage() {
         </p>
       </div>
 
-      {/* Plans grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+      {/* Plans grid — overflow-visible so badge above Guard card isn't clipped */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 items-stretch" style={{ overflow: 'visible' }}>
         {PLANS.map((plan) => {
           const Icon = plan.icon
           const isFeatured = plan.featured
 
           return (
+            /* Outer wrapper gives space above for the badge, overflow visible */
+            <div key={plan.name} className="flex flex-col" style={{ paddingTop: isFeatured ? '18px' : '0', overflow: 'visible' }}>
             <div
-              key={plan.name}
-              className={`relative rounded-2xl p-6 flex flex-col overflow-hidden ${isFeatured ? 'gradient-border glow-gold' : 'border border-border'}`}
+              className={`relative rounded-2xl p-6 flex flex-col h-full ${
+                isFeatured
+                  ? 'gradient-border glow-gold scale-[1.02]'
+                  : 'border border-border'
+              }`}
               style={{
                 background: isFeatured
                   ? 'linear-gradient(135deg, color-mix(in srgb, var(--accent) 8%, transparent) 0%, var(--surface) 70%)'
                   : 'var(--surface)',
+                overflow: 'visible',
               }}
             >
-              {/* Badge */}
+              {/* Badge — floats above the card */}
               {plan.badge && (
-                <div className="absolute top-4 right-4 px-2 py-0.5 rounded-full text-xs font-bold btn-primary">
+                <div
+                  className="btn-primary absolute left-1/2 px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap"
+                  style={{ top: '-14px', transform: 'translateX(-50%)', zIndex: 10 }}
+                >
                   {plan.badge}
                 </div>
               )}
@@ -203,12 +212,12 @@ export default function UpgradePage() {
                 ))}
               </ul>
 
-              {/* CTA */}
+              {/* CTA — mt-auto pins it to bottom, h-12 ensures uniform height */}
               {plan.cta ? (
                 <button
                   onClick={() => handleUpgrade(plan.cta as PlanType)}
                   disabled={!!loading}
-                  className={`w-full py-2.5 rounded-xl text-sm font-semibold disabled:opacity-50 disabled:pointer-events-none ${
+                  className={`mt-auto w-full h-12 rounded-xl text-sm font-semibold disabled:opacity-50 disabled:pointer-events-none ${
                     isFeatured ? 'btn-primary' : 'btn-ghost'
                   }`}
                 >
@@ -216,12 +225,13 @@ export default function UpgradePage() {
                 </button>
               ) : (
                 <div
-                  className="w-full py-2.5 rounded-xl text-sm font-medium text-center"
+                  className="mt-auto w-full h-12 rounded-xl text-sm font-medium flex items-center justify-center"
                   style={{ color: 'var(--text-muted)', border: '1px solid var(--border)' }}
                 >
                   {plan.ctaLabel}
                 </div>
               )}
+            </div>
             </div>
           )
         })}
