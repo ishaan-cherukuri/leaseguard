@@ -16,7 +16,16 @@ export async function proxy(request: NextRequest) {
           cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
           supabaseResponse = NextResponse.next({ request })
           cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options as Parameters<typeof supabaseResponse.cookies.set>[2])
+            supabaseResponse.cookies.set(name, value, {
+              // Default to 1-year persistent cookie so closing the browser
+              // doesn't log users out. Supabase's own options override this
+              // (e.g. if it sets a shorter maxAge for the code verifier).
+              maxAge: 60 * 60 * 24 * 365,
+              sameSite: 'lax',
+              httpOnly: true,
+              secure: process.env.NODE_ENV === 'production',
+              ...options,
+            } as Parameters<typeof supabaseResponse.cookies.set>[2])
           )
         },
       },

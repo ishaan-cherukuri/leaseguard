@@ -19,7 +19,7 @@ export default async function AnalysisPage({ params }: { params: Promise<{ id: s
 
   if (error || !data) notFound()
 
-  const analysis = data as Analysis & { ai_detection_result?: unknown }
+  const analysis = data as Analysis & { ai_detection_result?: unknown; lease_gaps_result?: unknown }
 
   if (analysis.status === 'processing') {
     return <AnalysisSkeleton />
@@ -52,6 +52,6 @@ export default async function AnalysisPage({ params }: { params: Promise<{ id: s
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const typedAnalysis = { ...analysis, ai_detection_result: analysis.ai_detection_result as any }
+  const typedAnalysis = { ...analysis, ai_detection_result: analysis.ai_detection_result as any, lease_gaps_result: analysis.lease_gaps_result as any }
   return <AnalysisResultsPanel analysis={typedAnalysis} pdfSignedUrl={pdfSignedUrl} />
 }

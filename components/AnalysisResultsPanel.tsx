@@ -4,16 +4,17 @@ import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   DollarSign, TrendingUp, ChevronDown,
-  Fingerprint, Bot, Info, Shield,
+  Fingerprint, Bot, Info, Shield, MapPin, ListChecks, FileSearch,
 } from 'lucide-react'
 import RiskGauge from '@/components/RiskGauge'
 import AIGauge from '@/components/AIGauge'
+import CoverageGauge from '@/components/CoverageGauge'
 import ClauseCard from '@/components/ClauseCard'
 import { BentoCard } from '@/components/ui/bento-grid'
 import type { Analysis } from '@/types'
+import type { LeaseGapsResult, GapItem } from '@/app/api/gaps/route'
 
 /* ── Pangram types ────────────────────────────────── */
-// Pangram API v3: POST https://text.api.pangram.com/v3
 interface PangramWindow {
   text: string
   label: 'AI-Generated' | 'AI-Assisted' | 'Human'
@@ -23,8 +24,8 @@ interface PangramWindow {
 }
 
 interface PangramResult {
-  headline: string          // e.g. "AI Detected"
-  prediction: string        // full sentence description
+  headline: string
+  prediction: string
   prediction_short: 'Human' | 'Mixed' | 'AI'
   fraction_ai: number       // 0–1
   fraction_ai_assisted: number
@@ -37,6 +38,7 @@ interface PangramResult {
 
 interface AnalysisWithDetection extends Analysis {
   ai_detection_result?: PangramResult | null
+  lease_gaps_result?: LeaseGapsResult | null
 }
 
 /* ── Props ────────────────────────────────────────── */
@@ -46,7 +48,6 @@ interface Props {
 }
 
 /* ── Helpers ──────────────────────────────────────── */
-// fraction_ai is 0–1; convert to 0–100 for gauge
 function fractionToScore(fraction: number): number {
   return Math.round(fraction * 100)
 }
@@ -62,7 +63,13 @@ function verdictDescription(result: PangramResult): string {
   return `This contract shows strong AI-generation patterns across approximately ${pct}% of its content. Uniform sentence structure, repetitive phrasing, and formulaic language are consistent with AI drafting tools.`
 }
 
-/* ── Skeleton ─────────────────────────────────────── */
+function severityColor(severity: GapItem['severity']): string {
+  if (severity === 'critical') return '#C9748A'
+  if (severity === 'important') return '#E09A30'
+  return 'var(--text-muted)'
+}
+
+/* ── Skeletons ────────────────────────────────────── */
 function DetectionSkeleton() {
   return (
     <div className="flex-1 flex flex-col overflow-hidden animate-pulse">
@@ -86,12 +93,35 @@ function DetectionSkeleton() {
   )
 }
 
-/* ── SentenceCard — mirrors ClauseCard style ──────── */
+function GapsSkeleton() {
+  return (
+    <div className="flex-1 flex flex-col overflow-hidden animate-pulse">
+      <div className="h-1/2 border-b border-border p-6">
+        <div className="flex items-start gap-6">
+          <div className="w-[180px] h-[180px] rounded-full shrink-0"
+            style={{ background: 'rgba(146,97,10,0.12)' }} />
+          <div className="flex-1 space-y-3 pt-2">
+            <div className="h-24 rounded-xl" style={{ background: 'var(--surface-raised)' }} />
+            <div className="h-10 rounded-xl" style={{ background: 'var(--surface-raised)' }} />
+          </div>
+        </div>
+      </div>
+      <div className="h-1/2 p-6 space-y-3">
+        <div className="h-4 w-40 rounded" style={{ background: 'var(--surface-raised)' }} />
+        {[1, 2, 3, 4].map(i => (
+          <div key={i} className="h-14 rounded-xl" style={{ background: 'var(--surface-raised)' }} />
+        ))}
+      </div>
+    </div>
+  )
+}
+
+/* ── SentenceCard ─────────────────────────────────── */
 interface SegmentCardData {
   text: string
-  score: number // 0–1
-  label: string // 'AI-Generated' | 'AI-Assisted' | 'Human'
-  confidence: string // 'High' | 'Medium' | 'Low'
+  score: number
+  label: string
+  confidence: string
 }
 
 function SentenceCard({ sentence, index }: { sentence: SegmentCardData; index: number }) {
@@ -99,7 +129,6 @@ function SentenceCard({ sentence, index }: { sentence: SegmentCardData; index: n
   const pct = Math.round(sentence.score * 100)
   const isAI = sentence.label === 'AI-Generated'
   const badgeColor = isAI ? '#C9748A' : '#E09A30'
-  const label = sentence.label
 
   return (
     <div className="group relative rounded-xl overflow-hidden card-interactive will-change-transform"
@@ -112,8 +141,6 @@ function SentenceCard({ sentence, index }: { sentence: SegmentCardData; index: n
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(74,154,181,0.06)_1px,transparent_1px)] bg-[length:4px_4px]" />
       </div>
-      <div className="absolute inset-0 -z-10 rounded-xl bg-gradient-to-br from-[#1a3a4a]/5 via-[#1a3a4a]/10 to-transparent pointer-events-none" />
-
       <div className="relative z-10 p-4">
         <div className="flex items-start gap-3">
           <span className="text-xs font-mono text-text-muted shrink-0 mt-0.5">
@@ -127,7 +154,7 @@ function SentenceCard({ sentence, index }: { sentence: SegmentCardData; index: n
                   backgroundColor: `color-mix(in srgb, ${badgeColor} 12%, transparent)`,
                   border: `1px solid color-mix(in srgb, ${badgeColor} 25%, transparent)`,
                 }}>
-                {label}
+                {sentence.label}
               </span>
               <span className="text-xs px-2 py-0.5 rounded-full font-bold"
                 style={{ color: '#4a9ab5', backgroundColor: 'rgba(26,58,74,0.2)', border: '1px solid rgba(26,58,74,0.3)' }}>
@@ -149,7 +176,6 @@ function SentenceCard({ sentence, index }: { sentence: SegmentCardData; index: n
           </div>
         </div>
       </div>
-
       {open && (
         <div className="relative z-10 px-4 pb-4 pt-0">
           <div className="rounded-lg overflow-hidden"
@@ -168,14 +194,95 @@ function SentenceCard({ sentence, index }: { sentence: SegmentCardData; index: n
   )
 }
 
+/* ── GapItemCard ──────────────────────────────────── */
+function GapItemCard({ item, index }: { item: GapItem; index: number }) {
+  const [open, setOpen] = useState(false)
+  const color = severityColor(item.severity)
+
+  return (
+    <div className="group relative rounded-xl overflow-hidden card-interactive will-change-transform"
+      style={{
+        background: `color-mix(in srgb, ${color} 4%, var(--surface))`,
+        border: '1px solid var(--border)',
+        borderLeftWidth: '3px',
+        borderLeftColor: color,
+      }}>
+      <div className="p-4">
+        <div className="flex items-start gap-3">
+          <span className="text-xs font-mono text-text-muted shrink-0 mt-0.5">
+            #{String(index + 1).padStart(2, '0')}
+          </span>
+          <div className="flex-1 min-w-0">
+            <div className="flex flex-wrap items-center gap-1.5 mb-1.5">
+              <span className="text-xs px-2 py-0.5 rounded-full font-semibold uppercase tracking-wide"
+                style={{
+                  color,
+                  backgroundColor: `color-mix(in srgb, ${color} 12%, transparent)`,
+                  border: `1px solid color-mix(in srgb, ${color} 25%, transparent)`,
+                }}>
+                {item.severity}
+              </span>
+              <span className="text-xs px-1.5 py-0.5 rounded font-medium text-text-muted"
+                style={{ background: 'var(--surface-raised)', border: '1px solid var(--border)' }}>
+                {item.category}
+              </span>
+              {item.location_specific && (
+                <span className="flex items-center gap-1 text-xs text-text-muted">
+                  <MapPin className="w-3 h-3" />
+                  Varies by state/county
+                </span>
+              )}
+            </div>
+            <p className="text-text-primary text-sm font-medium">{item.title}</p>
+            <button onClick={() => setOpen(!open)}
+              className="mt-2 flex items-center gap-1.5 text-text-muted hover:text-accent transition-colors text-xs">
+              <ChevronDown className={`w-3 h-3 transition-transform ${open ? 'rotate-180' : ''}`} />
+              {open ? 'Hide' : 'View'} details
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {open && (
+        <div className="px-4 pb-4 pt-0 space-y-2">
+          <div className="rounded-lg p-3 text-sm text-text-secondary leading-relaxed"
+            style={{ background: 'var(--surface-raised)', border: '1px solid var(--border)' }}>
+            <p className="text-xs font-semibold uppercase tracking-wider text-text-muted mb-1.5">Why this matters</p>
+            {item.explanation}
+          </div>
+          <div className="rounded-lg p-3 text-sm leading-relaxed"
+            style={{
+              background: `color-mix(in srgb, ${color} 6%, transparent)`,
+              border: `1px solid color-mix(in srgb, ${color} 20%, transparent)`,
+            }}>
+            <p className="text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color }}>
+              What to ask for
+            </p>
+            <p className="text-text-secondary">{item.suggested_addition}</p>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 /* ── Main component ───────────────────────────────── */
 export default function AnalysisResultsPanel({ analysis, pdfSignedUrl }: Props) {
-  const [activeTab, setActiveTab] = useState<'risk' | 'detect'>('risk')
+  const [activeTab, setActiveTab] = useState<'risk' | 'detect' | 'gaps'>('risk')
+
+  // AI Detection state
   const [detectResult, setDetectResult] = useState<PangramResult | null>(
     analysis.ai_detection_result ?? null
   )
   const [detectLoading, setDetectLoading] = useState(false)
   const [detectError, setDetectError] = useState<string | null>(null)
+
+  // Lease Gaps state
+  const [gapsResult, setGapsResult] = useState<LeaseGapsResult | null>(
+    analysis.lease_gaps_result ?? null
+  )
+  const [gapsLoading, setGapsLoading] = useState(false)
+  const [gapsError, setGapsError] = useState<string | null>(null)
 
   const criticalCount = analysis.flagged_clauses.filter(c => c.severity === 'critical').length
   const warningCount = analysis.flagged_clauses.filter(c => c.severity === 'warning').length
@@ -186,17 +293,20 @@ export default function AnalysisResultsPanel({ analysis, pdfSignedUrl }: Props) 
 
   async function handleDetectTab() {
     setActiveTab('detect')
-    if (detectResult || detectLoading) return
+    // Data already loaded — show instantly, no re-fetch
+    if (detectResult || detectError) return
+    if (detectLoading) return
     setDetectLoading(true)
     setDetectError(null)
     try {
-      const res = await fetch('/api/detect', {
+      const minDelay = new Promise<void>(r => setTimeout(r, 1200))
+      const fetchData = fetch('/api/detect', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ analysisId: analysis.id }),
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error ?? 'Detection failed')
+      }).then(r => r.json())
+      const [data] = await Promise.all([fetchData, minDelay])
+      if (data.error) throw new Error(data.error)
       setDetectResult(data as PangramResult)
     } catch (e) {
       setDetectError(e instanceof Error ? e.message : 'Detection failed')
@@ -205,51 +315,53 @@ export default function AnalysisResultsPanel({ analysis, pdfSignedUrl }: Props) 
     }
   }
 
-  // Pangram windows: show AI-Generated + AI-Assisted segments, sorted by score desc
+  async function handleGapsTab() {
+    setActiveTab('gaps')
+    // Data already loaded — show instantly, no re-fetch
+    if (gapsResult || gapsError) return
+    if (gapsLoading) return
+    setGapsLoading(true)
+    setGapsError(null)
+    try {
+      const minDelay = new Promise<void>(r => setTimeout(r, 1200))
+      const fetchData = fetch('/api/gaps', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ analysisId: analysis.id }),
+      }).then(r => r.json())
+      const [data] = await Promise.all([fetchData, minDelay])
+      if (data.error) throw new Error(data.error)
+      setGapsResult(data as LeaseGapsResult)
+    } catch (e) {
+      setGapsError(e instanceof Error ? e.message : 'Gaps analysis failed')
+    } finally {
+      setGapsLoading(false)
+    }
+  }
+
   const flaggedWindows = (detectResult?.windows ?? [])
     .filter(w => w.label !== 'Human')
     .sort((a, b) => b.ai_assistance_score - a.ai_assistance_score)
     .slice(0, 12)
 
+  const sortedGapItems = (gapsResult?.missing_items ?? []).sort((a, b) => {
+    const order = { critical: 0, important: 1, recommended: 2 }
+    return order[a.severity] - order[b.severity]
+  })
+
+  // Pill position calculation for 3 segments
+  const pillLeft = activeTab === 'risk' ? 4 : activeTab === 'detect' ? '33.33%' : '66.66%'
+  const pillRight = activeTab === 'gaps' ? 4 : activeTab === 'detect' ? '33.33%' : '66.66%'
+  const pillColor = activeTab === 'risk' ? '#C9748A' : activeTab === 'detect' ? '#1a3a4a' : '#92610A'
+
   return (
     <div className="flex flex-col h-screen overflow-hidden">
 
-      {/* ── Full-width toggle header ────────────────── */}
-      <div className="shrink-0 px-6 py-3 border-b border-border bg-surface flex items-center justify-between gap-4">
+      {/* ── Thin filename bar ──────────────────────── */}
+      <div className="shrink-0 px-6 py-2.5 border-b border-border bg-surface">
         <p className="text-text-secondary text-xs truncate capitalize">
           {analysis.document_type} · {analysis.file_name}
         </p>
-
-        {/* Pill toggle */}
-        <div className="relative flex p-1 rounded-full shrink-0"
-          style={{ background: 'var(--surface-raised)', border: '1px solid var(--border)' }}>
-          {/* Sliding bg pill */}
-          <motion.div
-            className="absolute top-1 bottom-1 rounded-full"
-            animate={{
-              left: activeTab === 'risk' ? 4 : '50%',
-              right: activeTab === 'risk' ? '50%' : 4,
-              backgroundColor: activeTab === 'risk' ? '#C9748A' : '#1a3a4a',
-            }}
-            transition={{ type: 'spring', stiffness: 420, damping: 32 }}
-          />
-          <button
-            onClick={() => setActiveTab('risk')}
-            className="relative z-10 flex items-center gap-1.5 px-4 py-1.5 text-xs font-semibold rounded-full min-w-[110px] justify-center transition-colors duration-200"
-            style={{ color: activeTab === 'risk' ? '#fff' : 'var(--text-secondary)' }}
-          >
-            <Shield className="w-3 h-3" />
-            Risk Review
-          </button>
-          <button
-            onClick={handleDetectTab}
-            className="relative z-10 flex items-center gap-1.5 px-4 py-1.5 text-xs font-semibold rounded-full min-w-[110px] justify-center transition-colors duration-200"
-            style={{ color: activeTab === 'detect' ? '#fff' : 'var(--text-secondary)' }}
-          >
-            <Fingerprint className="w-3 h-3" />
-            AI Detection
-          </button>
-        </div>
       </div>
 
       {/* ── Split content area ──────────────────────── */}
@@ -270,8 +382,48 @@ export default function AnalysisResultsPanel({ analysis, pdfSignedUrl }: Props) 
           )}
         </div>
 
-        {/* RIGHT — animated panel */}
-        <div className="w-1/2 relative overflow-hidden">
+        {/* RIGHT — toggle + animated panel */}
+        <div className="w-1/2 flex flex-col overflow-hidden">
+
+          {/* 3-segment pill toggle — centered in the right column */}
+          <div className="shrink-0 flex justify-center items-center py-3 px-4 border-b border-border"
+            style={{ background: 'var(--surface-raised)' }}>
+            <div className="relative flex p-1 rounded-full"
+              style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
+              <motion.div
+                className="absolute top-1 bottom-1 rounded-full"
+                animate={{ left: pillLeft, right: pillRight, backgroundColor: pillColor }}
+                transition={{ type: 'spring', stiffness: 420, damping: 32 }}
+              />
+              <button
+                onClick={() => setActiveTab('risk')}
+                className="relative z-10 flex items-center gap-1.5 px-4 py-1.5 text-xs font-semibold rounded-full min-w-[110px] justify-center transition-colors duration-200"
+                style={{ color: activeTab === 'risk' ? '#fff' : 'var(--text-secondary)' }}
+              >
+                <Shield className="w-3 h-3" />
+                Risk Review
+              </button>
+              <button
+                onClick={handleDetectTab}
+                className="relative z-10 flex items-center gap-1.5 px-4 py-1.5 text-xs font-semibold rounded-full min-w-[110px] justify-center transition-colors duration-200"
+                style={{ color: activeTab === 'detect' ? '#fff' : 'var(--text-secondary)' }}
+              >
+                <Fingerprint className="w-3 h-3" />
+                AI Detection
+              </button>
+              <button
+                onClick={handleGapsTab}
+                className="relative z-10 flex items-center gap-1.5 px-4 py-1.5 text-xs font-semibold rounded-full min-w-[110px] justify-center transition-colors duration-200"
+                style={{ color: activeTab === 'gaps' ? '#fff' : 'var(--text-secondary)' }}
+              >
+                <FileSearch className="w-3 h-3" />
+                Lease Gaps
+              </button>
+            </div>
+          </div>
+
+          {/* Animated panels */}
+          <div className="flex-1 relative overflow-hidden">
           <AnimatePresence mode="wait">
 
             {/* ── RISK REVIEW ── */}
@@ -378,10 +530,8 @@ export default function AnalysisResultsPanel({ analysis, pdfSignedUrl }: Props) 
                 exit={{ opacity: 0, x: 16 }}
                 transition={{ duration: 0.22, ease: 'easeOut' }}
               >
-                {/* Loading skeleton */}
                 {detectLoading && <DetectionSkeleton />}
 
-                {/* Error */}
                 {detectError && !detectLoading && (
                   <div className="flex-1 flex flex-col items-center justify-center gap-4 text-center px-8">
                     <div className="w-14 h-14 rounded-2xl flex items-center justify-center bg-critical/10 border border-critical/20">
@@ -397,10 +547,8 @@ export default function AnalysisResultsPanel({ analysis, pdfSignedUrl }: Props) 
                   </div>
                 )}
 
-                {/* Results */}
                 {detectResult && !detectLoading && (
                   <>
-                    {/* TOP — AI gauge + verdict + attribution */}
                     <div className="h-1/2 border-b border-border overflow-y-auto p-6 space-y-4">
                       <div className="flex items-start gap-6">
                         <div className="shrink-0">
@@ -423,7 +571,6 @@ export default function AnalysisResultsPanel({ analysis, pdfSignedUrl }: Props) 
                             </p>
                           </BentoCard>
 
-                          {/* Breakdown bar */}
                           <BentoCard className="p-3 border border-border bg-surface-raised">
                             <div className="flex items-center gap-1.5 mb-2">
                               <Info className="w-3.5 h-3.5 text-text-muted" />
@@ -456,7 +603,6 @@ export default function AnalysisResultsPanel({ analysis, pdfSignedUrl }: Props) 
                       </div>
                     </div>
 
-                    {/* BOTTOM — segment analysis + what this means */}
                     <div className="h-1/2 overflow-y-auto p-6">
                       <div className="flex items-center gap-3 mb-4">
                         <h2 className="font-display text-lg font-bold text-text-primary">Flagged Segments</h2>
@@ -484,7 +630,6 @@ export default function AnalysisResultsPanel({ analysis, pdfSignedUrl }: Props) 
                         </div>
                       )}
 
-                      {/* What This Means */}
                       <div className="mt-6">
                         <BentoCard className="border border-border bg-surface p-4" persistent>
                           <h3 className="font-display text-base font-bold text-text-primary mb-3">What This Means</h3>
@@ -511,8 +656,138 @@ export default function AnalysisResultsPanel({ analysis, pdfSignedUrl }: Props) 
               </motion.div>
             )}
 
+            {/* ── LEASE GAPS ── */}
+            {activeTab === 'gaps' && (
+              <motion.div
+                key="gaps"
+                className="absolute inset-0 flex flex-col"
+                initial={{ opacity: 0, x: 24 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 24 }}
+                transition={{ duration: 0.22, ease: 'easeOut' }}
+              >
+                {gapsLoading && <GapsSkeleton />}
+
+                {gapsError && !gapsLoading && (
+                  <div className="flex-1 flex flex-col items-center justify-center gap-4 text-center px-8">
+                    <div className="w-14 h-14 rounded-2xl flex items-center justify-center border"
+                      style={{ background: 'rgba(146,97,10,0.1)', borderColor: 'rgba(146,97,10,0.25)' }}>
+                      <FileSearch className="w-6 h-6" style={{ color: '#92610A' }} />
+                    </div>
+                    <div>
+                      <p className="text-text-primary font-semibold mb-1">Gaps analysis failed</p>
+                      <p className="text-text-secondary text-sm">{gapsError}</p>
+                      <button onClick={handleGapsTab} className="mt-4 btn-primary px-5 py-2 rounded-lg text-sm">
+                        Try again
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {gapsResult && !gapsLoading && (
+                  <>
+                    {/* TOP — CoverageGauge + summary + disclaimer */}
+                    <div className="h-1/2 border-b border-border overflow-y-auto p-6 space-y-4">
+                      <div className="flex items-start gap-6">
+                        <div className="shrink-0">
+                          <CoverageGauge score={gapsResult.gaps_score} level={gapsResult.gaps_level} />
+                        </div>
+                        <div className="flex-1 min-w-0 space-y-3 pt-2">
+                          <BentoCard className="p-3 border border-border bg-surface" persistent>
+                            <h2 className="font-display text-lg font-bold text-text-primary mb-1">Coverage Summary</h2>
+                            <p className="text-text-secondary text-sm leading-relaxed">{gapsResult.summary}</p>
+                          </BentoCard>
+                          {sortedGapItems.length > 0 && (
+                            <BentoCard className="p-3 border bg-surface-raised"
+                              style={{ borderColor: 'rgba(146,97,10,0.3)', borderLeftWidth: '3px', borderLeftColor: '#92610A' }}>
+                              <div className="flex items-center gap-4 text-xs">
+                                {(['critical', 'important', 'recommended'] as const).map(sev => {
+                                  const count = sortedGapItems.filter(i => i.severity === sev).length
+                                  if (!count) return null
+                                  const c = severityColor(sev)
+                                  return (
+                                    <span key={sev} className="flex items-center gap-1.5 font-semibold"
+                                      style={{ color: c }}>
+                                      <span className="w-1.5 h-1.5 rounded-full" style={{ background: c }} />
+                                      {count} {sev}
+                                    </span>
+                                  )
+                                })}
+                                <span className="text-text-muted">missing clauses</span>
+                              </div>
+                            </BentoCard>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* BOTTOM — missing items + questions */}
+                    <div className="h-1/2 overflow-y-auto p-6">
+                      {sortedGapItems.length > 0 ? (
+                        <>
+                          <div className="flex items-center gap-3 mb-4">
+                            <h2 className="font-display text-lg font-bold text-text-primary">Missing Clauses</h2>
+                            <span className="text-xs px-2 py-0.5 rounded-full font-semibold"
+                              style={{ color: '#92610A', background: 'rgba(146,97,10,0.12)', border: '1px solid rgba(146,97,10,0.25)' }}>
+                              {sortedGapItems.length} found
+                            </span>
+                          </div>
+                          <div className="space-y-2.5">
+                            {sortedGapItems.map((item, i) => (
+                              <GapItemCard key={i} item={item} index={i} />
+                            ))}
+                          </div>
+                        </>
+                      ) : (
+                        <div className="p-4 rounded-xl border text-center mb-4"
+                          style={{ borderColor: 'rgba(74,222,128,0.25)', background: 'rgba(74,222,128,0.05)' }}>
+                          <p className="text-sm font-semibold" style={{ color: '#4ade80' }}>No significant gaps found</p>
+                          <p className="text-text-secondary text-xs mt-1">This lease covers the key protection areas well.</p>
+                        </div>
+                      )}
+
+                      {/* Questions to ask */}
+                      {gapsResult.questions_to_ask.length > 0 && (
+                        <div className="mt-6">
+                          <div className="flex items-center gap-2 mb-3">
+                            <ListChecks className="w-4 h-4 text-text-muted" />
+                            <h2 className="font-display text-base font-bold text-text-primary">Questions to Ask Your Landlord</h2>
+                          </div>
+                          <BentoCard className="border border-border bg-surface p-4" persistent>
+                            <ol className="space-y-2.5">
+                              {gapsResult.questions_to_ask.map((q, i) => (
+                                <li key={i} className="flex items-start gap-3 text-sm text-text-secondary leading-relaxed">
+                                  <div className="shrink-0 w-5 h-5 rounded border flex items-center justify-center mt-0.5"
+                                    style={{ borderColor: 'rgba(146,97,10,0.4)', background: 'rgba(146,97,10,0.08)' }}>
+                                    <span className="text-xs font-bold" style={{ color: '#92610A' }}>{i + 1}</span>
+                                  </div>
+                                  {q}
+                                </li>
+                              ))}
+                            </ol>
+                          </BentoCard>
+                        </div>
+                      )}
+
+                      {/* State disclaimer */}
+                      {gapsResult.state_disclaimer && (
+                        <p className="mt-4 text-text-muted text-xs italic leading-relaxed">
+                          {gapsResult.state_disclaimer}
+                        </p>
+                      )}
+
+                      <p className="mt-3 text-text-muted text-xs leading-relaxed">
+                        Lease requirements vary significantly by location. Items marked with <MapPin className="w-3 h-3 inline mx-0.5" /> should be verified against your local laws before signing.
+                      </p>
+                    </div>
+                  </>
+                )}
+              </motion.div>
+            )}
+
           </AnimatePresence>
-        </div>
+          </div>{/* end flex-1 relative */}
+        </div>{/* end right column */}
       </div>
     </div>
   )

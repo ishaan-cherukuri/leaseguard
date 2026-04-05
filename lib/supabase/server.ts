@@ -9,7 +9,13 @@ function cookieMethods(cookieStore: Awaited<ReturnType<typeof cookies>>): Cookie
     setAll(cookiesToSet: { name: string; value: string; options?: Record<string, unknown> }[]) {
       try {
         cookiesToSet.forEach(({ name, value, options }) =>
-          cookieStore.set(name, value, options as Parameters<typeof cookieStore.set>[2])
+          cookieStore.set(name, value, {
+            maxAge: 60 * 60 * 24 * 365,
+            sameSite: 'lax',
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            ...options,
+          } as Parameters<typeof cookieStore.set>[2])
         )
       } catch {
         // Called from a Server Component — can be ignored

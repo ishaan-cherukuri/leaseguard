@@ -77,13 +77,13 @@ export default function AIGauge({ score }: AIGaugeProps) {
             transform={`rotate(135 ${size / 2} ${size / 2})`}
           />
           <text ref={scoreRef}
-            x={size / 2} y={size / 2 + 6}
+            x={size / 2} y={size / 2 - 6}
             textAnchor="middle" dominantBaseline="middle"
             fill="var(--text-primary)" fontSize="36" fontWeight="700"
             fontFamily="var(--font-playfair)"
           >0</text>
-          <text x={size / 2} y={size / 2 + 26}
-            textAnchor="middle"
+          <text x={size / 2} y={size / 2 + 20}
+            textAnchor="middle" dominantBaseline="middle"
             fill="var(--text-muted)" fontSize="10"
             fontFamily="var(--font-dm-sans)"
           >AI Probability</text>

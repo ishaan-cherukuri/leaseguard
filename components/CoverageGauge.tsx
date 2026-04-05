@@ -1,28 +1,29 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
-import type { RiskLevel } from '@/types'
 
-interface RiskGaugeProps {
+type GapsLevel = 'comprehensive' | 'adequate' | 'incomplete' | 'bare-bones'
+
+interface CoverageGaugeProps {
   score: number
-  level: RiskLevel
+  level: GapsLevel
 }
 
 function scoreToColor(score: number): string {
-  if (score <= 30) return '#3ECF8E'
-  if (score <= 60) return '#E09A30'
-  if (score <= 80) return '#E8445A'
-  return '#E05252'
+  if (score >= 75) return '#4ade80'
+  if (score >= 50) return '#E09A30'
+  if (score >= 25) return '#C9748A'
+  return '#92610A'
 }
 
-const LEVEL_LABELS: Record<RiskLevel, string> = {
-  low: 'LOW RISK',
-  medium: 'MEDIUM RISK',
-  high: 'HIGH RISK',
-  critical: 'CRITICAL',
+const LEVEL_LABELS: Record<GapsLevel, string> = {
+  'comprehensive': 'COMPREHENSIVE',
+  'adequate': 'ADEQUATE',
+  'incomplete': 'INCOMPLETE',
+  'bare-bones': 'BARE-BONES',
 }
 
-export default function RiskGauge({ score, level }: RiskGaugeProps) {
+export default function CoverageGauge({ score, level }: CoverageGaugeProps) {
   const scoreRef = useRef<SVGTextElement>(null)
   const circleRef = useRef<SVGCircleElement>(null)
   const glowRef = useRef<SVGCircleElement>(null)
@@ -43,14 +44,11 @@ export default function RiskGauge({ score, level }: RiskGaugeProps) {
       if (!start) start = ts
       const progress = Math.min((ts - start) / duration, 1)
       const eased = 1 - Math.pow(1 - progress, 4)
-
       const currentScore = Math.round(eased * score)
       const currentDash = eased * targetDash
-
       if (scoreRef.current) scoreRef.current.textContent = String(currentScore)
       if (circleRef.current) circleRef.current.style.strokeDashoffset = String(arcLength - currentDash)
       if (glowRef.current) glowRef.current.style.strokeDashoffset = String(arcLength - currentDash)
-
       if (progress < 1) requestAnimationFrame(animate)
     }
 
@@ -60,10 +58,8 @@ export default function RiskGauge({ score, level }: RiskGaugeProps) {
   return (
     <div className="flex flex-col items-center gap-3">
       <div className="relative">
-        {/* Outer glow ring */}
         <div className="absolute inset-0 rounded-full opacity-20 blur-xl"
           style={{ background: color, transform: 'scale(0.8)' }} />
-
         <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="relative">
           {/* Track */}
           <circle cx={size / 2} cy={size / 2} r={radius}
@@ -73,7 +69,7 @@ export default function RiskGauge({ score, level }: RiskGaugeProps) {
             strokeDashoffset={0}
             transform={`rotate(135 ${size / 2} ${size / 2})`}
           />
-          {/* Glow layer */}
+          {/* Glow */}
           <circle ref={glowRef} cx={size / 2} cy={size / 2} r={radius}
             fill="none" stroke={color} strokeWidth={strokeWidth + 6} strokeLinecap="round"
             strokeDasharray={`${arcLength} ${circumference}`}
@@ -81,7 +77,7 @@ export default function RiskGauge({ score, level }: RiskGaugeProps) {
             transform={`rotate(135 ${size / 2} ${size / 2})`}
             opacity={0.15} style={{ filter: 'blur(4px)' }}
           />
-          {/* Main arc */}
+          {/* Arc */}
           <circle ref={circleRef} cx={size / 2} cy={size / 2} r={radius}
             fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round"
             strokeDasharray={`${arcLength} ${circumference}`}
@@ -99,11 +95,9 @@ export default function RiskGauge({ score, level }: RiskGaugeProps) {
             textAnchor="middle" dominantBaseline="middle"
             fill="var(--text-muted)" fontSize="10"
             fontFamily="var(--font-dm-sans)"
-          >out of 100</text>
+          >Lease Coverage</text>
         </svg>
       </div>
-
-      {/* Level badge */}
       <div className="px-3 py-1 rounded-full text-xs font-bold tracking-widest"
         style={{
           color,
