@@ -1,6 +1,8 @@
 import type { Metadata } from 'next'
 import { Playfair_Display, DM_Sans, DM_Mono } from 'next/font/google'
 import { ThemeProvider } from 'next-themes'
+import JsonLd from '@/components/JsonLd'
+import { SEO } from '@/lib/seo'
 import './globals.css'
 
 const playfair = Playfair_Display({
@@ -23,14 +25,88 @@ const dmMono = DM_Mono({
 })
 
 export const metadata: Metadata = {
-  title: 'LeaseGuard — AI Contract Analyzer',
-  description: 'Upload any contract. Get a plain-English breakdown of every clause that could cost you.',
-  keywords: ['lease analyzer', 'contract review', 'AI legal', 'rental agreement'],
+  metadataBase: new URL(SEO.siteUrl),
+  title: {
+    default: SEO.defaultTitle,
+    template: '%s | LeaseGuard',
+  },
+  description: SEO.defaultDescription,
+  keywords: [
+    'AI lease analyzer',
+    'lease review',
+    'contract analysis',
+    'lease red flags',
+    'free lease checker',
+    'rental agreement review',
+    'AI contract reviewer',
+    'is my lease fair',
+  ],
+  authors: [{ name: 'LeaseGuard' }],
+  creator: 'LeaseGuard',
+  publisher: 'LeaseGuard',
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: { index: true, follow: true },
+  },
+  alternates: {
+    canonical: SEO.siteUrl,
+  },
+  openGraph: {
+    type: 'website',
+    locale: 'en_US',
+    url: SEO.siteUrl,
+    siteName: SEO.siteName,
+    title: SEO.defaultTitle,
+    description: SEO.defaultDescription,
+    images: [
+      {
+        url: SEO.defaultOgImage,
+        width: 1200,
+        height: 630,
+        alt: 'LeaseGuard — AI Lease & Contract Analyzer',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    site: SEO.twitterHandle,
+    creator: SEO.twitterHandle,
+    title: SEO.defaultTitle,
+    description: SEO.defaultDescription,
+    images: [SEO.defaultOgImage],
+  },
+  other: {
+    'theme-color': SEO.themeColor,
+  },
+}
+
+const organizationSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'Organization',
+  name: 'LeaseGuard',
+  url: SEO.siteUrl,
+  logo: `${SEO.siteUrl}/logo.png`,
+  sameAs: [
+    'https://twitter.com/leaseguard',
+    'https://www.linkedin.com/company/leaseguard',
+    'https://www.producthunt.com/products/leaseguard',
+  ],
+  description: 'AI-powered lease and contract analyzer for renters and freelancers',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${playfair.variable} ${dmSans.variable} ${dmMono.variable}`} suppressHydrationWarning>
+    <html
+      lang="en"
+      className={`${playfair.variable} ${dmSans.variable} ${dmMono.variable}`}
+      suppressHydrationWarning
+    >
+      <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="theme-color" content={SEO.themeColor} />
+        <JsonLd data={organizationSchema} />
+      </head>
       <body className="min-h-screen antialiased">
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
           {children}

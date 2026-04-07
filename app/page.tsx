@@ -5,6 +5,65 @@ import Link from 'next/link'
 import { useTheme } from 'next-themes'
 import { BackgroundPaths } from '@/components/ui/background-paths'
 
+// JSON-LD schemas injected client-side (page is 'use client', metadata export is not possible)
+const SOFTWARE_SCHEMA = {
+  '@context': 'https://schema.org',
+  '@type': 'SoftwareApplication',
+  name: 'LeaseGuard',
+  applicationCategory: 'BusinessApplication',
+  operatingSystem: 'Web',
+  url: 'https://theleaseguard.com',
+  offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+  aggregateRating: { '@type': 'AggregateRating', ratingValue: '4.8', ratingCount: '47' },
+}
+
+const FAQ_SCHEMA = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: [
+    {
+      '@type': 'Question',
+      name: 'Is my lease document safe to upload?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'Yes. LeaseGuard processes your lease using encrypted connections and stores files in a private Supabase storage bucket. Your document is only used for AI lease analysis and is never shared with third parties.',
+      },
+    },
+    {
+      '@type': 'Question',
+      name: 'How accurate is the AI lease analysis?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'LeaseGuard\'s AI contract analysis uses Claude to identify risky clauses, missing protections, and hidden costs. It surfaces the same red flags a lawyer would review for common residential and commercial leases. It is not a substitute for legal advice on complex or commercial contracts.',
+      },
+    },
+    {
+      '@type': 'Question',
+      name: 'What types of contracts can LeaseGuard analyze?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'LeaseGuard supports residential leases, rental agreements, employment contracts, gym memberships, car leases, insurance contracts, and general business agreements. The AI lease analyzer adapts its risk framework to the contract type automatically.',
+      },
+    },
+    {
+      '@type': 'Question',
+      name: 'How is LeaseGuard different from hiring a lawyer?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'A lawyer charges $200–$500 per hour for lease review. LeaseGuard\'s free AI lease analyzer delivers a risk score, flagged clauses, hidden cost estimate, and negotiation scripts in under 60 seconds — at a fraction of the cost. For complex commercial leases, we recommend legal counsel.',
+      },
+    },
+    {
+      '@type': 'Question',
+      name: 'What does the risk score mean?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'The risk score is a 0–100 measure of how risky a lease is for the tenant. Scores under 30 are low risk, 30–60 are medium, 60–80 are high, and above 80 are critical. The score is based on the number, severity, and type of flagged clauses found during the AI contract analysis.',
+      },
+    },
+  ],
+}
+
 // ─── Inline SVG icons ─────────────────────────────────────────────────────────
 const ShieldIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -365,6 +424,7 @@ function Nav({ dark, toggleDark }: { dark: boolean; toggleDark: () => void }) {
         {/* Center nav */}
         <div className="lp-nav-center" style={{ display: 'none', alignItems: 'center', gap: '2rem' }}>
           <a className="lp-nav-link" href="#features">Features</a>
+          <a className="lp-nav-link" href="#lease-gaps">Lease Gaps</a>
           <a className="lp-nav-link" href="#how-it-works">How it works</a>
           <a className="lp-nav-link" href="#pricing">Pricing</a>
         </div>
@@ -477,7 +537,7 @@ function Hero() {
           {/* Badge */}
           <div className="lp-badge lp-fade-up lp-fade-1" style={{ marginBottom: '1.75rem' }}>
             <ZapIcon />
-            Risk Analysis · AI Detection · Negotiation Scripts
+            Risk Analysis · AI Detection · Lease Gap Scan
           </div>
 
           {/* Headline */}
@@ -500,7 +560,7 @@ function Hero() {
           {/* Subheadline */}
           <p className="lp-fade-up lp-fade-3" style={{ fontSize: '1.2rem', lineHeight: 1.7, color: 'var(--text-secondary)', marginBottom: '2.5rem', maxWidth: '540px' }}>
             Upload any contract and get a full risk score, flagged clauses, hidden cost estimate,
-            negotiation scripts — and an AI authorship check to see if the contract was machine-generated.
+            negotiation scripts, an AI authorship check — and a scan for what&apos;s missing from your lease entirely.
           </p>
 
           {/* CTAs */}
@@ -518,7 +578,7 @@ function Hero() {
           <div className="lp-fade-up lp-fade-5" style={{ display: 'flex', gap: '2.5rem', flexWrap: 'wrap' }}>
             {[
               { value: '60s', label: 'Average analysis time' },
-              { value: '2-in-1', label: 'Risk review + AI detection' },
+              { value: '3-in-1', label: 'Risk · AI detection · Gap scan' },
               { value: 'Free', label: 'First contract on us' },
             ].map((stat) => (
               <div key={stat.label}>
@@ -551,7 +611,8 @@ function Features() {
     { icon: <MessageIcon />, title: 'Negotiation Scripts', desc: 'Get word-for-word scripts to push back on bad terms. Know exactly what to say to your landlord.' },
     { icon: <DollarIcon />, title: 'Hidden Cost Estimate', desc: 'Uncover fees buried in the fine print. See the true total cost of signing before you commit.' },
     { icon: <LayersIcon />, title: 'AI Authorship Detection', desc: 'Find out if your contract was AI-generated. Boilerplate AI drafts often miss jurisdiction-specific protections.' },
-    { icon: <ClockIcon />, title: '60-Second Analysis', desc: 'Upload your PDF and get risk review + AI detection results in under a minute. No legalese required.' },
+    { icon: <ZapIcon />, title: 'Lease Gap Scan', desc: 'Scans 8 categories of missing clauses — entry rights, deposit timelines, rent caps, and more. Know what to ask for before you sign.' },
+    { icon: <ClockIcon />, title: '60-Second Analysis', desc: 'Upload your PDF and get risk review, AI detection, and gap scan results in under a minute. No legalese required.' },
   ]
 
   return (
@@ -590,12 +651,237 @@ function Features() {
   )
 }
 
+// ─── Lease Gaps ───────────────────────────────────────────────────────────────
+const GapSearchIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+    <circle cx="11.5" cy="14.5" r="2.5"/><path d="m13.25 16.25 1.5 1.5"/>
+  </svg>
+)
+const XCircleIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>
+  </svg>
+)
+const MapPinIcon = () => (
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
+  </svg>
+)
+
+function LeaseGapsSection() {
+  const gaps = [
+    { severity: 'critical', title: 'No move-out inspection clause', ask: 'Request a joint move-out walkthrough within 5 days of vacating.', location: false },
+    { severity: 'critical', title: 'Landlord entry: 2-hour notice only', ask: 'Negotiate 24-hour minimum written notice except emergencies.', location: true },
+    { severity: 'important', title: 'Security deposit return timeline missing', ask: 'Require itemized deductions in writing within 21 days.', location: true },
+    { severity: 'important', title: 'No maintenance response deadline', ask: 'Add a 72-hour emergency / 14-day routine repair requirement.', location: false },
+    { severity: 'important', title: 'Rent increase: no advance notice required', ask: 'Request 60-day written notice before any rent increase.', location: true },
+    { severity: 'recommended', title: 'No early termination provision', ask: 'Propose a 60-day notice + 1-month fee buyout clause.', location: false },
+  ]
+
+  const severityColor = (s: string) =>
+    s === 'critical' ? '#C9748A' : s === 'important' ? '#E09A30' : '#92610A'
+
+  return (
+    <section id="lease-gaps" className="lp-texture" style={{
+      padding: '100px 1.5rem',
+      background: 'var(--surface)',
+      position: 'relative',
+    }}>
+      {/* Amber ambient glow */}
+      <div style={{
+        position: 'absolute', top: '-80px', left: '50%', transform: 'translateX(-50%)',
+        width: '700px', height: '500px', borderRadius: '50%',
+        background: 'radial-gradient(circle, rgba(146,97,10,0.1), transparent 70%)',
+        filter: 'blur(60px)', pointerEvents: 'none', zIndex: 0,
+      }} />
+
+      <div style={{ maxWidth: '1200px', margin: '0 auto', position: 'relative', zIndex: 1 }}>
+
+        {/* Header */}
+        <div className="lp-reveal" style={{ marginBottom: '4rem' }}>
+          <div className="lp-badge" style={{
+            marginBottom: '1.25rem',
+            background: 'rgba(146,97,10,0.1)', borderColor: 'rgba(146,97,10,0.25)', color: '#92610A',
+          }}>
+            <GapSearchIcon />
+            Lease Gap Detection
+          </div>
+          <h2 style={{
+            fontFamily: 'var(--font-playfair), serif',
+            fontSize: 'clamp(2rem, 4vw, 3rem)', fontWeight: 700, lineHeight: 1.15,
+            color: 'var(--text-primary)', maxWidth: '680px', marginBottom: '1.25rem',
+          }}>
+            The clause that{' '}
+            <span style={{ fontStyle: 'italic', color: '#92610A' }}>isn&apos;t there</span>
+            {' '}can cost you most
+          </h2>
+          <p style={{ fontSize: '1.0625rem', lineHeight: 1.7, color: 'var(--text-secondary)', maxWidth: '560px' }}>
+            Most leases omit tenant protections you assume are standard. LeaseGuard scans 8 categories of missing clauses — security deposits, entry rights, maintenance, rent increases, and more — then tells you exactly what to ask for before you sign.
+          </p>
+        </div>
+
+        {/* Two-column layout */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '3rem', alignItems: 'start' }}>
+
+          {/* Left — gap cards */}
+          <div className="lp-reveal" style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
+            {gaps.map((gap) => {
+              const color = severityColor(gap.severity)
+              return (
+                <div key={gap.title} style={{
+                  background: `color-mix(in srgb, ${color} 4%, var(--surface-raised))`,
+                  border: `1px solid color-mix(in srgb, ${color} 20%, var(--border))`,
+                  borderLeftWidth: '3px', borderLeftColor: color,
+                  borderRadius: '1rem', padding: '1rem 1.25rem',
+                  position: 'relative', overflow: 'hidden',
+                }}>
+                  {/* Dot texture */}
+                  <div style={{
+                    position: 'absolute', inset: 0,
+                    backgroundImage: `radial-gradient(circle at center, color-mix(in srgb, ${color} 8%, transparent) 1px, transparent 1px)`,
+                    backgroundSize: '4px 4px', pointerEvents: 'none',
+                  }} />
+                  <div style={{ position: 'relative', zIndex: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
+                      <span style={{
+                        fontSize: '0.7rem', fontWeight: 700, padding: '0.15rem 0.6rem',
+                        borderRadius: '9999px', textTransform: 'uppercase', letterSpacing: '0.06em',
+                        color, background: `color-mix(in srgb, ${color} 12%, transparent)`,
+                        border: `1px solid color-mix(in srgb, ${color} 25%, transparent)`,
+                      }}>
+                        {gap.severity}
+                      </span>
+                      {gap.location && (
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '3px', fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                          <MapPinIcon /> varies by state
+                        </span>
+                      )}
+                      <span style={{ marginLeft: 'auto', color: '#C9748A' }}><XCircleIcon /></span>
+                    </div>
+                    <p style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.375rem' }}>
+                      {gap.title}
+                    </p>
+                    <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontStyle: 'italic' }}>
+                      Ask for: {gap.ask}
+                    </p>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+
+          {/* Right — explanation + mini demo */}
+          <div className="lp-reveal" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+
+            {/* Stat bar */}
+            <div style={{
+              display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem',
+            }}>
+              {[
+                { val: '8', label: 'categories scanned', color: '#92610A' },
+                { val: '83%', label: 'of leases have critical gaps', color: '#C9748A' },
+                { val: '< 60s', label: 'to get your gap report', color: '#92610A' },
+                { val: 'Free', label: 'first scan on us', color: '#C9748A' },
+              ].map((s) => (
+                <div key={s.label} style={{
+                  background: 'var(--surface-raised)', border: '1px solid var(--border)',
+                  borderRadius: '1rem', padding: '1.25rem',
+                }}>
+                  <div style={{ fontFamily: 'var(--font-playfair), serif', fontSize: '1.75rem', fontWeight: 800, color: s.color, lineHeight: 1 }}>
+                    {s.val}
+                  </div>
+                  <div style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', marginTop: '0.375rem', lineHeight: 1.4 }}>
+                    {s.label}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Mini demo output card */}
+            <div style={{
+              background: 'var(--surface)',
+              border: '1px solid var(--border)',
+              borderRadius: '1.25rem', padding: '1.25rem',
+              boxShadow: '0 8px 32px rgba(0,0,0,0.08)',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+                <div style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#92610A' }}>
+                  Lease Coverage Score
+                </div>
+                <span style={{
+                  fontSize: '0.7rem', fontWeight: 700, padding: '0.2rem 0.6rem',
+                  borderRadius: '9999px', background: 'rgba(201,116,138,0.12)',
+                  color: '#C9748A', border: '1px solid rgba(201,116,138,0.25)',
+                }}>
+                  INCOMPLETE
+                </span>
+              </div>
+
+              {/* Coverage bar */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.875rem', marginBottom: '1rem' }}>
+                <div style={{ flexShrink: 0, textAlign: 'center' }}>
+                  <div style={{
+                    fontFamily: 'var(--font-playfair), serif', fontSize: '2.5rem', fontWeight: 800,
+                    color: '#C9748A', lineHeight: 1,
+                  }}>38</div>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '2px' }}>out of 100</div>
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ height: '8px', background: 'var(--border)', borderRadius: '4px', overflow: 'hidden', marginBottom: '0.5rem' }}>
+                    <div style={{ width: '38%', height: '100%', background: 'linear-gradient(90deg, #C9748A, #E09A30)', borderRadius: '4px' }} />
+                  </div>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.45 }}>
+                    This lease covers basic rent terms but is missing key tenant protections.
+                  </div>
+                </div>
+              </div>
+
+              {/* Mini gap list */}
+              <div style={{ borderTop: '1px solid var(--border)', paddingTop: '0.875rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                {[
+                  { t: 'No move-out inspection clause', c: '#C9748A', s: 'Critical' },
+                  { t: 'Security deposit timeline missing', c: '#E09A30', s: 'Important' },
+                  { t: 'No rent increase notice required', c: '#E09A30', s: 'Important' },
+                ].map((item) => (
+                  <div key={item.t} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <span style={{
+                      fontSize: '0.65rem', fontWeight: 700, padding: '0.1rem 0.45rem',
+                      borderRadius: '9999px', color: item.c,
+                      background: `color-mix(in srgb, ${item.c} 12%, transparent)`,
+                      border: `1px solid color-mix(in srgb, ${item.c} 22%, transparent)`,
+                      flexShrink: 0,
+                    }}>{item.s}</span>
+                    <span style={{ fontSize: '0.8rem', color: 'var(--text-primary)' }}>{item.t}</span>
+                  </div>
+                ))}
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem', fontStyle: 'italic' }}>
+                  + 4 more missing clauses · 6 questions to ask your landlord
+                </div>
+              </div>
+            </div>
+
+            <Link href="/signup" className="btn-primary" style={{
+              fontSize: '0.9375rem', padding: '0.875rem 1.75rem',
+              borderRadius: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
+              alignSelf: 'flex-start',
+            }}>
+              <GapSearchIcon />
+              Scan my lease for gaps
+            </Link>
+          </div>
+        </div>
+      </div>
+    </section>
+  )
+}
+
 // ─── How It Works ─────────────────────────────────────────────────────────────
 function HowItWorks() {
   const steps = [
     { n: '01', title: 'Upload your contract', desc: 'Drag and drop any PDF lease, rental, or business contract. We handle any size.', detail: 'Supports leases, rentals, employment, gym, insurance, car, and more.' },
-    { n: '02', title: 'Two analyses run in parallel', desc: 'Claude reads every clause for risk, flagged terms, and hidden costs. Pangram checks whether the contract was AI-generated.', detail: 'Both results appear side by side in the same interface.' },
-    { n: '03', title: 'Sign — or negotiate', desc: 'Get your risk score, flagged clauses, cost estimate, negotiation scripts, and an AI authorship verdict. Know what to push back on.', detail: 'Takes under 60 seconds from upload to results.' },
+    { n: '02', title: 'Three analyses run in parallel', desc: 'Claude reads every clause for risk and flags hidden costs. Pangram checks for AI authorship. A gap scan surfaces what\'s missing entirely.', detail: 'All three results appear in the same side-by-side interface — switchable with one click.' },
+    { n: '03', title: 'Sign — or negotiate', desc: 'Get your risk score, flagged clauses, cost estimate, negotiation scripts, an AI authorship verdict, and a list of missing protections to request.', detail: 'Takes under 60 seconds from upload to results.' },
   ]
 
   return (
@@ -605,7 +891,7 @@ function HowItWorks() {
           <div className="lp-badge" style={{ marginBottom: '1.25rem' }}>How it works</div>
           <h2 style={{ fontFamily: 'var(--font-playfair), serif', fontSize: 'clamp(2rem, 4vw, 3rem)', fontWeight: 700, lineHeight: 1.15, color: 'var(--text-primary)' }}>
             One upload.{' '}
-            <span style={{ fontStyle: 'italic', color: 'var(--accent)' }}>Two layers of protection.</span>
+            <span style={{ fontStyle: 'italic', color: 'var(--accent)' }}>Three layers of protection.</span>
           </h2>
         </div>
 
@@ -795,7 +1081,7 @@ function Footer() {
         </Link>
 
         <div style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap' }}>
-          {[{ label: 'Features', href: '#features' }, { label: 'How it works', href: '#how-it-works' }, { label: 'Pricing', href: '#pricing' }].map((l) => (
+          {[{ label: 'Features', href: '#features' }, { label: 'Lease Gaps', href: '#lease-gaps' }, { label: 'How it works', href: '#how-it-works' }, { label: 'Pricing', href: '#pricing' }].map((l) => (
             <a key={l.label} className="lp-nav-link" href={l.href}>{l.label}</a>
           ))}
           <Link className="lp-nav-link" href="/login">Sign in</Link>
@@ -822,6 +1108,8 @@ export default function LandingPage() {
 
   return (
     <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(SOFTWARE_SCHEMA) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(FAQ_SCHEMA) }} />
       <style dangerouslySetInnerHTML={{ __html: PAGE_CSS }} />
 
       {/* Fixed animated background */}
@@ -833,6 +1121,7 @@ export default function LandingPage() {
         <Nav dark={mounted ? dark : false} toggleDark={toggleDark} />
         <Hero />
         <Features />
+        <LeaseGapsSection />
         <HowItWorks />
         <Pricing />
         <Footer />
