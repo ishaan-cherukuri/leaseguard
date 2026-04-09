@@ -237,7 +237,14 @@ export default function SignupPage() {
             <button
               type="submit"
               disabled={loading || otp.join('').length < 6}
-              className="btn-primary w-full py-3 rounded-xl text-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:pointer-events-none"
+              style={{
+                width: '100%', padding: '0.75rem',
+                background: 'var(--accent)', color: '#fff',
+                border: 'none', borderRadius: '0.75rem',
+                fontSize: '0.875rem', fontWeight: 600,
+                cursor: (loading || otp.join('').length < 6) ? 'not-allowed' : 'pointer',
+                opacity: (loading || otp.join('').length < 6) ? 0.5 : 1,
+              }}
             >
               {loading ? 'Verifying...' : 'Verify & create account'}
             </button>
@@ -358,7 +365,14 @@ export default function SignupPage() {
           <button
             type="submit"
             disabled={loading}
-            className="btn-primary w-full py-3 rounded-xl text-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:pointer-events-none mt-2"
+            style={{
+              width: '100%', padding: '0.75rem', marginTop: '0.5rem',
+              background: 'var(--accent)', color: '#fff',
+              border: 'none', borderRadius: '0.75rem',
+              fontSize: '0.875rem', fontWeight: 600,
+              cursor: loading ? 'not-allowed' : 'pointer',
+              opacity: loading ? 0.5 : 1,
+            }}
           >
             {loading ? 'Sending code...' : 'Send verification code'}
           </button>

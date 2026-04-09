@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 118" fill="none">
+  <defs>
+    <clipPath id="shield">
+      <!-- Classic heraldic shield: flat top, slight outward curve at sides, tapers to point -->
+      <path d="M10,8 L90,8 L90,58 Q90,98 50,114 Q10,98 10,58 Z"/>
+    </clipPath>
+  </defs>
+
+  <!-- Shield fill -->
+  <path d="M10,8 L90,8 L90,58 Q90,98 50,114 Q10,98 10,58 Z" fill="#C9748A" opacity="0.18"/>
+
+  <!-- Vertical hatching lines clipped inside shield -->
+  <g clip-path="url(#shield)" stroke="#C9748A" stroke-width="0.9" opacity="0.6" stroke-linecap="round">
+    <line x1="14" y1="2" x2="14" y2="116"/>
+    <line x1="17.5" y1="2" x2="17.5" y2="116"/>
+    <line x1="21" y1="2" x2="21" y2="116"/>
+    <line x1="24.5" y1="2" x2="24.5" y2="116"/>
+    <line x1="28" y1="2" x2="28" y2="116"/>
+    <line x1="31.5" y1="2" x2="31.5" y2="116"/>
+    <line x1="35" y1="2" x2="35" y2="116"/>
+    <line x1="38.5" y1="2" x2="38.5" y2="116"/>
+    <line x1="42" y1="2" x2="42" y2="116"/>
+    <line x1="45.5" y1="2" x2="45.5" y2="116"/>
+    <line x1="49" y1="2" x2="49" y2="116"/>
+    <line x1="52.5" y1="2" x2="52.5" y2="116"/>
+    <line x1="56" y1="2" x2="56" y2="116"/>
+    <line x1="59.5" y1="2" x2="59.5" y2="116"/>
+    <line x1="63" y1="2" x2="63" y2="116"/>
+    <line x1="66.5" y1="2" x2="66.5" y2="116"/>
+    <line x1="70" y1="2" x2="70" y2="116"/>
+    <line x1="73.5" y1="2" x2="73.5" y2="116"/>
+    <line x1="77" y1="2" x2="77" y2="116"/>
+    <line x1="80.5" y1="2" x2="80.5" y2="116"/>
+    <line x1="84" y1="2" x2="84" y2="116"/>
+    <line x1="87.5" y1="2" x2="87.5" y2="116"/>
+  </g>
+
+  <!-- Shield border (thicker, darker) -->
+  <path d="M10,8 L90,8 L90,58 Q90,98 50,114 Q10,98 10,58 Z"
+        stroke="#C9748A" stroke-width="3.5" stroke-linejoin="round"/>
+</svg>

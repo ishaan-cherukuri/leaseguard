@@ -65,10 +65,10 @@ const FAQ_SCHEMA = {
 }
 
 // ─── Inline SVG icons ─────────────────────────────────────────────────────────
-const ShieldIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-  </svg>
+// Shield logo — classic heraldic shape, vertical pencil hatching, rose gold
+const ShieldLogo = ({ size = 34 }: { size?: number }) => (
+  // eslint-disable-next-line @next/next/no-img-element
+  <img src="/logo.png" alt="LeaseGuard" width={size} height={Math.round(size * 1.18)} style={{ display: 'block' }} />
 )
 const UploadIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -408,14 +408,8 @@ function Nav({ dark, toggleDark }: { dark: boolean; toggleDark: () => void }) {
     }}>
       <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: '68px' }}>
         {/* Logo */}
-        <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', textDecoration: 'none' }}>
-          <div style={{
-            width: '32px', height: '32px',
-            background: 'linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 65%, #000))',
-            borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff',
-          }}>
-            <ShieldIcon />
-          </div>
+        <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', textDecoration: 'none' }}>
+          <ShieldLogo size={34} />
           <span style={{ fontFamily: 'var(--font-playfair), serif', fontSize: '1.2rem', fontWeight: 700, color: 'var(--text-primary)' }}>
             LeaseGuard
           </span>
@@ -1067,14 +1061,8 @@ function Footer() {
   return (
     <footer style={{ borderTop: '1px solid var(--border)', padding: '3rem 1.5rem', background: 'var(--surface-raised)' }}>
       <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1.5rem' }}>
-        <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', textDecoration: 'none' }}>
-          <div style={{
-            width: '28px', height: '28px',
-            background: 'linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 65%, #000))',
-            borderRadius: '7px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff',
-          }}>
-            <ShieldIcon />
-          </div>
+        <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', textDecoration: 'none' }}>
+          <ShieldLogo size={28} />
           <span style={{ fontFamily: 'var(--font-playfair), serif', fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-primary)' }}>
             LeaseGuard
           </span>
