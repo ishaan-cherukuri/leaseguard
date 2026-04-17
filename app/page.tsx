@@ -1,9 +1,10 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useTheme } from 'next-themes'
 import { BackgroundPaths } from '@/components/ui/background-paths'
+import { useDropzone } from 'react-dropzone'
 
 // JSON-LD schemas injected client-side (page is 'use client', metadata export is not possible)
 const SOFTWARE_SCHEMA = {
@@ -374,6 +375,470 @@ const PAGE_CSS = `
   }
 `
 
+// ─── Guest Trial ──────────────────────────────────────────────────────────────
+const GUEST_SCAN_KEY = 'lg_guest_scan_used'
+
+const GUEST_DOC_TYPES = [
+  { value: 'lease', label: 'Lease' },
+  { value: 'rental', label: 'Rental' },
+  { value: 'employment', label: 'Employment' },
+  { value: 'gym', label: 'Gym' },
+  { value: 'car', label: 'Car' },
+  { value: 'insurance', label: 'Insurance' },
+  { value: 'other', label: 'Other' },
+]
+
+const GUEST_STAGES = [
+  { label: 'Extracting document...', detail: 'Reading your PDF text' },
+  { label: 'Analyzing clauses...', detail: 'Identifying risky terms with AI' },
+  { label: 'Calculating risk score...', detail: 'Scoring against market standards' },
+]
+
+type GuestPhase = 'upload' | 'loading' | 'results'
+interface GuestClause { title: string; severity: string }
+interface GuestResult {
+  risk_score: number
+  risk_level: string
+  summary: string
+  total_cost_estimate: string
+  flagged_clauses: GuestClause[]
+}
+
+function guestRiskColor(level: string) {
+  if (level === 'critical') return '#E05252'
+  if (level === 'high') return '#E07D52'
+  if (level === 'medium') return '#E09A30'
+  return '#3ECF8E'
+}
+function guestSevColor(sev: string) {
+  if (sev === 'critical') return '#E05252'
+  if (sev === 'warning') return '#E07D52'
+  return '#6B7280'
+}
+
+function GuestDropZone({ onFile, file, disabled }: { onFile: (f: File) => void; file: File | null; disabled: boolean }) {
+  const [dragActive, setDragActive] = useState(false)
+  const onDrop = useCallback((accepted: File[]) => {
+    if (accepted[0]) onFile(accepted[0])
+  }, [onFile])
+  const { getRootProps, getInputProps } = useDropzone({
+    onDrop,
+    accept: { 'application/pdf': ['.pdf'] },
+    maxSize: 10 * 1024 * 1024,
+    multiple: false,
+    disabled,
+    onDragEnter: () => setDragActive(true),
+    onDragLeave: () => setDragActive(false),
+  })
+
+  return (
+    <div {...getRootProps()} style={{
+      border: `2px dashed ${dragActive ? 'var(--accent)' : file ? 'rgba(62,207,142,0.6)' : 'rgba(201,116,138,0.4)'}`,
+      borderRadius: '0.875rem',
+      padding: '1.5rem',
+      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+      gap: '0.5rem',
+      cursor: disabled ? 'not-allowed' : 'pointer',
+      background: dragActive ? 'rgba(201,116,138,0.06)' : file ? 'rgba(62,207,142,0.04)' : 'transparent',
+      transition: 'all 0.2s ease',
+      opacity: disabled ? 0.5 : 1,
+      minHeight: '90px',
+    }}>
+      <input {...getInputProps()} />
+      {file ? (
+        <>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#3ECF8E" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="20 6 9 17 4 12" />
+          </svg>
+          <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#3ECF8E' }}>{file.name}</span>
+          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>click to replace</span>
+        </>
+      ) : (
+        <>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" />
+          </svg>
+          <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+            {dragActive ? 'Drop your PDF here' : 'Drag & drop your PDF here'}
+          </span>
+          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>or click to browse · PDF only · max 10MB</span>
+        </>
+      )}
+    </div>
+  )
+}
+
+function GuestTrialSection() {
+  const [mounted, setMounted] = useState(false)
+  const [guestUsed, setGuestUsed] = useState(false)
+  const [phase, setPhase] = useState<GuestPhase>('upload')
+  const [file, setFile] = useState<File | null>(null)
+  const [docType, setDocType] = useState('lease')
+  const [stage, setStage] = useState(0)
+  const [result, setResult] = useState<GuestResult | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [showModal, setShowModal] = useState(false)
+  const t1Ref = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const t2Ref = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    setMounted(true)
+    setGuestUsed(!!localStorage.getItem(GUEST_SCAN_KEY))
+  }, [])
+
+  useEffect(() => {
+    return () => {
+      if (t1Ref.current) clearTimeout(t1Ref.current)
+      if (t2Ref.current) clearTimeout(t2Ref.current)
+    }
+  }, [])
+
+  if (!mounted || guestUsed) return null
+
+  async function handleAnalyze() {
+    if (!file) return
+    setError(null)
+    setPhase('loading')
+    setStage(0)
+    t1Ref.current = setTimeout(() => setStage(1), 5000)
+    t2Ref.current = setTimeout(() => setStage(2), 15000)
+
+    try {
+      const fd = new FormData()
+      fd.append('file', file)
+      fd.append('documentType', docType)
+      const res = await fetch('/api/analyze-guest', { method: 'POST', body: fd })
+      const data = await res.json()
+
+      if (!res.ok) {
+        setError(data.error ?? 'Analysis failed. Please try again.')
+        setPhase('upload')
+        return
+      }
+      localStorage.setItem(GUEST_SCAN_KEY, '1')
+      setResult(data)
+      setPhase('results')
+    } catch {
+      setError('Something went wrong. Please try again.')
+      setPhase('upload')
+    } finally {
+      if (t1Ref.current) clearTimeout(t1Ref.current)
+      if (t2Ref.current) clearTimeout(t2Ref.current)
+    }
+  }
+
+  function handleDismiss() {
+    setShowModal(true)
+  }
+
+  return (
+    <section style={{ padding: '0 1.5rem 80px', position: 'relative', zIndex: 1 }}>
+      <div style={{ maxWidth: '620px', margin: '0 auto' }}>
+
+        {/* ── Upload phase ── */}
+        {phase === 'upload' && (
+          <div style={{
+            background: 'var(--surface)',
+            border: '1px solid rgba(201,116,138,0.28)',
+            borderRadius: '1.5rem',
+            padding: '2rem',
+            boxShadow: '0 8px 40px rgba(201,116,138,0.1)',
+          }}>
+            <div style={{ marginBottom: '1.5rem' }}>
+              <div style={{ fontSize: '1.0625rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.25rem' }}>
+                Try it now — no signup needed
+              </div>
+              <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+                Drop your contract below. Your first scan is free.
+              </div>
+            </div>
+
+            {/* Doc type pills */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '1.25rem' }}>
+              {GUEST_DOC_TYPES.map((t) => (
+                <button key={t.value} onClick={() => setDocType(t.value)} style={{
+                  padding: '0.3rem 0.75rem', borderRadius: '9999px', fontSize: '0.8125rem', fontWeight: 500,
+                  border: `1px solid ${docType === t.value ? 'var(--accent)' : 'var(--border)'}`,
+                  background: docType === t.value ? 'rgba(201,116,138,0.12)' : 'transparent',
+                  color: docType === t.value ? 'var(--accent)' : 'var(--text-secondary)',
+                  cursor: 'pointer', transition: 'all 0.15s ease',
+                }}>
+                  {t.label}
+                </button>
+              ))}
+            </div>
+
+            <GuestDropZone onFile={setFile} file={file} disabled={false} />
+
+            {error && (
+              <div style={{ marginTop: '0.75rem', fontSize: '0.8125rem', color: '#E05252', display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                </svg>
+                {error}
+              </div>
+            )}
+
+            <button
+              onClick={handleAnalyze}
+              disabled={!file}
+              className="btn-primary"
+              style={{
+                marginTop: '1.25rem', width: '100%', padding: '0.875rem',
+                borderRadius: '0.75rem', fontSize: '0.9375rem', fontWeight: 600,
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
+                opacity: file ? 1 : 0.5, cursor: file ? 'pointer' : 'not-allowed',
+              }}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+              </svg>
+              Analyze Contract
+            </button>
+          </div>
+        )}
+
+        {/* ── Loading phase ── */}
+        {phase === 'loading' && (
+          <div style={{
+            background: 'var(--surface)',
+            border: '1px solid rgba(201,116,138,0.28)',
+            borderRadius: '1.5rem',
+            padding: '2rem',
+            boxShadow: '0 8px 40px rgba(201,116,138,0.1)',
+          }}>
+            <div style={{ marginBottom: '1.5rem' }}>
+              <div style={{ fontSize: '1.0625rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.25rem' }}>
+                Analyzing your contract
+              </div>
+              <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>This usually takes 15–30 seconds</div>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1.5rem' }}>
+              {GUEST_STAGES.map((s, i) => {
+                const isDone = i < stage
+                const isActive = i === stage
+                return (
+                  <div key={s.label} style={{
+                    display: 'flex', alignItems: 'flex-start', gap: '0.875rem',
+                    padding: '0.875rem 1rem', borderRadius: '0.875rem', border: '1px solid',
+                    borderColor: isActive ? 'rgba(201,116,138,0.35)' : isDone ? 'rgba(62,207,142,0.3)' : 'var(--border)',
+                    background: isActive ? 'rgba(201,116,138,0.05)' : isDone ? 'rgba(62,207,142,0.04)' : 'transparent',
+                    opacity: !isDone && !isActive ? 0.45 : 1,
+                    transition: 'all 0.3s ease',
+                  }}>
+                    <div style={{
+                      width: '22px', height: '22px', borderRadius: '50%', flexShrink: 0,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      background: isDone ? '#3ECF8E' : 'transparent',
+                      border: isDone ? 'none' : `2px solid ${isActive ? 'var(--accent)' : 'var(--border)'}`,
+                    }}>
+                      {isDone && (
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M5 13l4 4L19 7" />
+                        </svg>
+                      )}
+                      {isActive && (
+                        <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--accent)', animation: 'pulse 1.5s infinite' }} />
+                      )}
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '0.875rem', fontWeight: 600, color: isActive ? 'var(--accent)' : isDone ? '#3ECF8E' : 'var(--text-secondary)' }}>
+                        {s.label}
+                      </div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px' }}>{s.detail}</div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+
+            <div style={{ height: '4px', background: 'var(--border)', borderRadius: '2px', overflow: 'hidden' }}>
+              <div style={{
+                height: '100%', borderRadius: '2px',
+                width: `${((stage + 1) / GUEST_STAGES.length) * 100}%`,
+                background: 'linear-gradient(90deg, var(--accent), color-mix(in srgb, var(--accent) 70%, #fff))',
+                transition: 'width 1s ease',
+              }} />
+            </div>
+          </div>
+        )}
+
+        {/* ── Results phase ── */}
+        {phase === 'results' && result && (() => {
+          const rColor = guestRiskColor(result.risk_level)
+          const clauses = result.flagged_clauses.slice(0, 3)
+          return (
+            <div style={{
+              background: 'var(--surface)',
+              border: '1px solid rgba(201,116,138,0.28)',
+              borderRadius: '1.5rem',
+              padding: '2rem',
+              boxShadow: '0 8px 40px rgba(201,116,138,0.12)',
+            }}>
+              {/* Header row */}
+              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
+                <div>
+                  <div style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-muted)', marginBottom: '0.375rem' }}>
+                    Risk Score
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.625rem' }}>
+                    <span style={{ fontFamily: 'var(--font-playfair), serif', fontSize: '3rem', fontWeight: 800, color: rColor, lineHeight: 1 }}>
+                      {result.risk_score}
+                    </span>
+                    <span style={{
+                      fontSize: '0.75rem', fontWeight: 700, padding: '0.2rem 0.7rem',
+                      borderRadius: '9999px', textTransform: 'uppercase',
+                      background: `color-mix(in srgb, ${rColor} 15%, transparent)`,
+                      color: rColor, border: `1px solid color-mix(in srgb, ${rColor} 28%, transparent)`,
+                    }}>
+                      {result.risk_level}
+                    </span>
+                  </div>
+                </div>
+                <button onClick={handleDismiss} style={{
+                  width: '32px', height: '32px', borderRadius: '50%', border: '1px solid var(--border)',
+                  background: 'transparent', cursor: 'pointer', color: 'var(--text-secondary)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  transition: 'all 0.15s ease', flexShrink: 0,
+                }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = '#E05252'; e.currentTarget.style.color = '#E05252' }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-secondary)' }}
+                  aria-label="Close results"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                  </svg>
+                </button>
+              </div>
+
+              {/* Risk bar */}
+              <div style={{ height: '6px', background: 'var(--border)', borderRadius: '3px', overflow: 'hidden', marginBottom: '1.25rem' }}>
+                <div style={{
+                  width: `${result.risk_score}%`, height: '100%', borderRadius: '3px',
+                  background: `linear-gradient(90deg, #3ECF8E, #E09A30, ${rColor})`,
+                  transition: 'width 0.8s ease',
+                }} />
+              </div>
+
+              {/* Summary */}
+              <p style={{ fontSize: '0.875rem', lineHeight: 1.65, color: 'var(--text-secondary)', marginBottom: '1.25rem' }}>
+                {result.summary}
+              </p>
+
+              {/* Flagged clauses */}
+              {clauses.length > 0 && (
+                <div style={{ marginBottom: '1.25rem' }}>
+                  <div style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-muted)', marginBottom: '0.625rem' }}>
+                    Top Flagged Clauses
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    {clauses.map((c, i) => {
+                      const sc = guestSevColor(c.severity)
+                      return (
+                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <span style={{
+                            fontSize: '0.65rem', fontWeight: 700, padding: '0.15rem 0.5rem', borderRadius: '9999px',
+                            color: sc, background: `color-mix(in srgb, ${sc} 14%, transparent)`,
+                            border: `1px solid color-mix(in srgb, ${sc} 25%, transparent)`, flexShrink: 0,
+                          }}>!</span>
+                          <span style={{ fontSize: '0.8125rem', color: 'var(--text-primary)' }}>{c.title}</span>
+                        </div>
+                      )
+                    })}
+                    {result.flagged_clauses.length > 3 && (
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                        + {result.flagged_clauses.length - 3} more flagged clauses
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Cost estimate */}
+              <div style={{
+                background: 'var(--accent-dim)', border: '1px solid color-mix(in srgb, var(--accent) 22%, transparent)',
+                borderRadius: '0.75rem', padding: '0.875rem', marginBottom: '1.5rem',
+              }}>
+                <div style={{ fontSize: '0.75rem', color: 'var(--accent)', fontWeight: 600, marginBottom: '0.25rem' }}>
+                  Estimated Hidden Costs
+                </div>
+                <div style={{ fontSize: '1.125rem', fontFamily: 'var(--font-playfair), serif', fontWeight: 700, color: 'var(--text-primary)' }}>
+                  {result.total_cost_estimate}
+                </div>
+              </div>
+
+              {/* CTAs */}
+              <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                <Link href="/signup" className="btn-primary" style={{
+                  flex: 1, padding: '0.8rem 1.25rem', borderRadius: '0.75rem', fontSize: '0.9rem',
+                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
+                  minWidth: '180px',
+                }}>
+                  Save results — sign up free
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
+                  </svg>
+                </Link>
+                <button onClick={handleDismiss} className="btn-ghost" style={{
+                  padding: '0.8rem 1.25rem', borderRadius: '0.75rem', fontSize: '0.9rem',
+                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
+                }}>
+                  New scan
+                </button>
+              </div>
+            </div>
+          )
+        })()}
+      </div>
+
+      {/* ── Signup Modal ── */}
+      {showModal && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 999,
+          background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(6px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: '1.5rem',
+        }}>
+          <div style={{
+            background: 'var(--surface)', border: '1px solid var(--border)',
+            borderRadius: '1.5rem', padding: '2.25rem', maxWidth: '420px', width: '100%',
+            boxShadow: '0 32px 80px rgba(0,0,0,0.3)',
+          }}>
+            <div style={{ fontSize: '1.25rem', fontFamily: 'var(--font-playfair), serif', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.75rem' }}>
+              Don&apos;t lose your results
+            </div>
+            <p style={{ fontSize: '0.9375rem', lineHeight: 1.65, color: 'var(--text-secondary)', marginBottom: '1.75rem' }}>
+              Sign up free to save this analysis, unlock negotiation scripts, and get more scans. Your first plan includes 1 full scan — no credit card required.
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              <Link href="/signup" className="btn-primary" style={{
+                padding: '0.9rem', borderRadius: '0.75rem', fontSize: '0.9375rem',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
+              }}>
+                Create free account
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
+                </svg>
+              </Link>
+              <button onClick={() => { setShowModal(false); setGuestUsed(true) }} style={{
+                padding: '0.75rem', borderRadius: '0.75rem', fontSize: '0.9rem',
+                background: 'transparent', border: '1px solid var(--border)', cursor: 'pointer',
+                color: 'var(--text-secondary)', transition: 'all 0.15s ease',
+              }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.color = 'var(--text-primary)' }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-secondary)' }}
+              >
+                Maybe later
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </section>
+  )
+}
+
 // ─── Hooks ────────────────────────────────────────────────────────────────────
 function useScrollReveal() {
   useEffect(() => {
@@ -404,13 +869,13 @@ function Nav({ dark, toggleDark }: { dark: boolean; toggleDark: () => void }) {
       backdropFilter: scrolled ? 'blur(16px)' : 'none',
       WebkitBackdropFilter: scrolled ? 'blur(16px)' : 'none',
       borderBottom: scrolled ? '1px solid var(--border)' : '1px solid transparent',
-      padding: '0 1.5rem',
+      padding: '0 2rem 0 1.25rem',
     }}>
-      <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: '68px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: '68px' }}>
         {/* Logo */}
-        <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', textDecoration: 'none' }}>
-          <ShieldLogo size={34} />
-          <span style={{ fontFamily: 'var(--font-playfair), serif', fontSize: '1.2rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+        <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', textDecoration: 'none' }}>
+          <ShieldLogo size={60} />
+          <span style={{ fontFamily: 'var(--font-playfair), serif', fontSize: '1.65rem', fontWeight: 700, color: 'var(--text-primary)' }}>
             LeaseGuard
           </span>
         </Link>
@@ -522,7 +987,7 @@ function DemoCard() {
 // ─── Hero ─────────────────────────────────────────────────────────────────────
 function Hero() {
   return (
-    <section id="hero" className="lp-texture" style={{ position: 'relative', paddingTop: '130px', paddingBottom: '100px', overflow: 'hidden' }}>
+    <section id="hero" className="lp-texture" style={{ position: 'relative', paddingTop: '130px', paddingBottom: '48px', overflow: 'hidden' }}>
       <div className="lp-glow" style={{ top: '-100px', right: '-100px', opacity: 0.8 }} />
       <div className="lp-glow" style={{ bottom: '-50px', left: '-150px', width: '500px', height: '500px', opacity: 0.5 }} />
 
@@ -1108,6 +1573,7 @@ export default function LandingPage() {
       <div id="lp-root" style={{ minHeight: '100vh', background: 'var(--background)', position: 'relative', zIndex: 1 }}>
         <Nav dark={mounted ? dark : false} toggleDark={toggleDark} />
         <Hero />
+        <GuestTrialSection />
         <Features />
         <LeaseGapsSection />
         <HowItWorks />

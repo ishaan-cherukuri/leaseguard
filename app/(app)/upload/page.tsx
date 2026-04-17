@@ -100,6 +100,12 @@ export default function UploadPage() {
         return
       }
 
+      // Fire detect + gaps in background so results are cached by the time user clicks those tabs
+      const bgBody = JSON.stringify({ analysisId: data.analysisId })
+      const bgHeaders = { 'Content-Type': 'application/json' }
+      fetch('/api/detect', { method: 'POST', headers: bgHeaders, body: bgBody, keepalive: true }).catch(() => {})
+      fetch('/api/gaps', { method: 'POST', headers: bgHeaders, body: bgBody, keepalive: true }).catch(() => {})
+
       // Stay in loading state — navigate directly, no flash back to ready screen
       router.push(`/analysis/${data.analysisId}`)
     } catch {

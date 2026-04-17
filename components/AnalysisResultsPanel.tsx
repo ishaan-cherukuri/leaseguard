@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   DollarSign, TrendingUp, ChevronDown,
@@ -270,12 +270,41 @@ function GapItemCard({ item, index }: { item: GapItem; index: number }) {
 export default function AnalysisResultsPanel({ analysis, pdfSignedUrl }: Props) {
   const [activeTab, setActiveTab] = useState<'risk' | 'detect' | 'gaps'>('risk')
 
+  // Draggable split divider (30–70%)
+  const [splitPct, setSplitPct] = useState(50)
+  const [isDragging, setIsDragging] = useState(false)
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  function onDividerMouseDown(e: React.MouseEvent) {
+    e.preventDefault()
+    setIsDragging(true)
+    document.body.style.cursor = 'col-resize'
+    document.body.style.userSelect = 'none'
+
+    function onMouseMove(ev: MouseEvent) {
+      if (!containerRef.current) return
+      const rect = containerRef.current.getBoundingClientRect()
+      const pct = ((ev.clientX - rect.left) / rect.width) * 100
+      setSplitPct(Math.min(70, Math.max(30, pct)))
+    }
+    function onMouseUp() {
+      setIsDragging(false)
+      document.body.style.cursor = ''
+      document.body.style.userSelect = ''
+      window.removeEventListener('mousemove', onMouseMove)
+      window.removeEventListener('mouseup', onMouseUp)
+    }
+    window.addEventListener('mousemove', onMouseMove)
+    window.addEventListener('mouseup', onMouseUp)
+  }
+
   // AI Detection state
   const [detectResult, setDetectResult] = useState<PangramResult | null>(
     analysis.ai_detection_result ?? null
   )
   const [detectLoading, setDetectLoading] = useState(false)
   const [detectError, setDetectError] = useState<string | null>(null)
+  const detectAbortRef = useRef<AbortController | null>(null)
 
   // Lease Gaps state
   const [gapsResult, setGapsResult] = useState<LeaseGapsResult | null>(
@@ -283,6 +312,15 @@ export default function AnalysisResultsPanel({ analysis, pdfSignedUrl }: Props) 
   )
   const [gapsLoading, setGapsLoading] = useState(false)
   const [gapsError, setGapsError] = useState<string | null>(null)
+  const gapsAbortRef = useRef<AbortController | null>(null)
+
+  // Abort in-flight requests on unmount
+  useEffect(() => {
+    return () => {
+      detectAbortRef.current?.abort()
+      gapsAbortRef.current?.abort()
+    }
+  }, [])
 
   const criticalCount = analysis.flagged_clauses.filter(c => c.severity === 'critical').length
   const warningCount = analysis.flagged_clauses.filter(c => c.severity === 'warning').length
@@ -291,24 +329,36 @@ export default function AnalysisResultsPanel({ analysis, pdfSignedUrl }: Props) 
     return order[a.severity] - order[b.severity]
   })
 
+  function handleRiskTab() {
+    // Abort any in-flight secondary fetches when returning to Risk Review
+    if (detectLoading) { detectAbortRef.current?.abort(); setDetectLoading(false) }
+    if (gapsLoading)   { gapsAbortRef.current?.abort();   setGapsLoading(false)   }
+    setActiveTab('risk')
+  }
+
   async function handleDetectTab() {
+    // Abort gaps fetch if it's in-flight
+    if (gapsLoading) { gapsAbortRef.current?.abort(); setGapsLoading(false) }
     setActiveTab('detect')
-    // Data already loaded — show instantly, no re-fetch
     if (detectResult || detectError) return
     if (detectLoading) return
     setDetectLoading(true)
     setDetectError(null)
+    const controller = new AbortController()
+    detectAbortRef.current = controller
     try {
       const minDelay = new Promise<void>(r => setTimeout(r, 1200))
       const fetchData = fetch('/api/detect', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ analysisId: analysis.id }),
+        signal: controller.signal,
       }).then(r => r.json())
       const [data] = await Promise.all([fetchData, minDelay])
       if (data.error) throw new Error(data.error)
       setDetectResult(data as PangramResult)
     } catch (e) {
+      if (e instanceof Error && e.name === 'AbortError') return
       setDetectError(e instanceof Error ? e.message : 'Detection failed')
     } finally {
       setDetectLoading(false)
@@ -316,23 +366,28 @@ export default function AnalysisResultsPanel({ analysis, pdfSignedUrl }: Props) 
   }
 
   async function handleGapsTab() {
+    // Abort detect fetch if it's in-flight
+    if (detectLoading) { detectAbortRef.current?.abort(); setDetectLoading(false) }
     setActiveTab('gaps')
-    // Data already loaded — show instantly, no re-fetch
     if (gapsResult || gapsError) return
     if (gapsLoading) return
     setGapsLoading(true)
     setGapsError(null)
+    const controller = new AbortController()
+    gapsAbortRef.current = controller
     try {
       const minDelay = new Promise<void>(r => setTimeout(r, 1200))
       const fetchData = fetch('/api/gaps', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ analysisId: analysis.id }),
+        signal: controller.signal,
       }).then(r => r.json())
       const [data] = await Promise.all([fetchData, minDelay])
       if (data.error) throw new Error(data.error)
       setGapsResult(data as LeaseGapsResult)
     } catch (e) {
+      if (e instanceof Error && e.name === 'AbortError') return
       setGapsError(e instanceof Error ? e.message : 'Gaps analysis failed')
     } finally {
       setGapsLoading(false)
@@ -365,10 +420,10 @@ export default function AnalysisResultsPanel({ analysis, pdfSignedUrl }: Props) 
       </div>
 
       {/* ── Split content area ──────────────────────── */}
-      <div className="flex flex-1 overflow-hidden">
+      <div ref={containerRef} className="flex flex-1 overflow-hidden">
 
         {/* LEFT — PDF (always visible) */}
-        <div className="w-1/2 border-r border-border flex flex-col shrink-0">
+        <div className="border-r border-border flex flex-col shrink-0 relative" style={{ width: `${splitPct}%` }}>
           {pdfSignedUrl ? (
             <iframe
               src={`${pdfSignedUrl}#toolbar=0&navpanes=0&scrollbar=0`}
@@ -380,10 +435,31 @@ export default function AnalysisResultsPanel({ analysis, pdfSignedUrl }: Props) 
               PDF preview unavailable
             </div>
           )}
+          {/* Transparent overlay prevents iframe from swallowing mouse events during drag */}
+          {isDragging && (
+            <div className="absolute inset-0" style={{ zIndex: 20 }} />
+          )}
+        </div>
+
+        {/* DIVIDER — draggable */}
+        <div
+          onMouseDown={onDividerMouseDown}
+          className="shrink-0 flex items-center justify-center group"
+          style={{ width: '10px', cursor: 'col-resize', background: 'var(--border)', position: 'relative', zIndex: 10 }}
+        >
+          <div
+            className="rounded-full transition-all group-hover:opacity-100 group-active:opacity-100"
+            style={{
+              width: '4px', height: '40px',
+              background: 'var(--text-muted)',
+              opacity: 0.4,
+              transition: 'opacity 0.15s, background 0.15s',
+            }}
+          />
         </div>
 
         {/* RIGHT — toggle + animated panel */}
-        <div className="w-1/2 flex flex-col overflow-hidden">
+        <div className="flex flex-col overflow-hidden" style={{ flex: 1 }}>
 
           {/* 3-segment pill toggle — centered in the right column */}
           <div className="shrink-0 flex justify-center items-center py-3 px-4 border-b border-border"
@@ -396,7 +472,7 @@ export default function AnalysisResultsPanel({ analysis, pdfSignedUrl }: Props) 
                 transition={{ type: 'spring', stiffness: 420, damping: 32 }}
               />
               <button
-                onClick={() => setActiveTab('risk')}
+                onClick={handleRiskTab}
                 className="relative z-10 flex items-center gap-1.5 px-4 py-1.5 text-xs font-semibold rounded-full min-w-[110px] justify-center transition-colors duration-200"
                 style={{ color: activeTab === 'risk' ? '#fff' : 'var(--text-secondary)' }}
               >
