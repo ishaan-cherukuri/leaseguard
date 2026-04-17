@@ -1006,11 +1006,12 @@ function Hero() {
             fontWeight: 800, lineHeight: 1.08, letterSpacing: '-0.02em',
             color: 'var(--text-primary)', marginBottom: '1.5rem',
           }}>
-            Read every contract.{' '}
+            Read every contract.
             <span style={{
               fontStyle: 'italic',
               background: 'linear-gradient(135deg, #EDAFC0, #C9748A)',
               WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text',
+              marginLeft: '0.22em', paddingLeft: '4px',
             }}>
               Trust nothing.
             </span>

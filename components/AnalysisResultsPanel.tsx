@@ -266,6 +266,10 @@ function GapItemCard({ item, index }: { item: GapItem; index: number }) {
   )
 }
 
+/* ── Module-level cache — persists across client-side navigation in same session ── */
+const detectMemCache = new Map<string, PangramResult>()
+const gapsMemCache = new Map<string, LeaseGapsResult>()
+
 /* ── Main component ───────────────────────────────── */
 export default function AnalysisResultsPanel({ analysis, pdfSignedUrl }: Props) {
   const [activeTab, setActiveTab] = useState<'risk' | 'detect' | 'gaps'>('risk')
@@ -298,23 +302,66 @@ export default function AnalysisResultsPanel({ analysis, pdfSignedUrl }: Props) 
     window.addEventListener('mouseup', onMouseUp)
   }
 
-  // AI Detection state
+  // AI Detection state — seed from DB props first, fall back to memory cache
   const [detectResult, setDetectResult] = useState<PangramResult | null>(
-    analysis.ai_detection_result ?? null
+    (analysis.ai_detection_result as PangramResult | null) ?? detectMemCache.get(analysis.id) ?? null
   )
   const [detectLoading, setDetectLoading] = useState(false)
   const [detectError, setDetectError] = useState<string | null>(null)
   const detectAbortRef = useRef<AbortController | null>(null)
 
-  // Lease Gaps state
+  // Lease Gaps state — same seeding strategy
   const [gapsResult, setGapsResult] = useState<LeaseGapsResult | null>(
-    analysis.lease_gaps_result ?? null
+    (analysis.lease_gaps_result as LeaseGapsResult | null) ?? gapsMemCache.get(analysis.id) ?? null
   )
   const [gapsLoading, setGapsLoading] = useState(false)
   const [gapsError, setGapsError] = useState<string | null>(null)
   const gapsAbortRef = useRef<AbortController | null>(null)
 
-  // Abort in-flight requests on unmount
+  // Background pre-fetch both tabs on mount so they're ready when user clicks them
+  useEffect(() => {
+    const bgDetectCtrl = new AbortController()
+    const bgGapsCtrl = new AbortController()
+
+    if (!detectResult) {
+      fetch('/api/detect', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ analysisId: analysis.id }),
+        signal: bgDetectCtrl.signal,
+      })
+        .then(r => r.json())
+        .then(data => {
+          if (!data.error) {
+            detectMemCache.set(analysis.id, data)
+            setDetectResult(data as PangramResult)
+          }
+        })
+        .catch(() => {})
+    }
+
+    if (!gapsResult) {
+      fetch('/api/gaps', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ analysisId: analysis.id }),
+        signal: bgGapsCtrl.signal,
+      })
+        .then(r => r.json())
+        .then(data => {
+          if (!data.error) {
+            gapsMemCache.set(analysis.id, data)
+            setGapsResult(data as LeaseGapsResult)
+          }
+        })
+        .catch(() => {})
+    }
+
+    return () => {
+      bgDetectCtrl.abort()
+      bgGapsCtrl.abort()
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Abort tab-specific in-flight requests on unmount
   useEffect(() => {
     return () => {
       detectAbortRef.current?.abort()
@@ -356,6 +403,7 @@ export default function AnalysisResultsPanel({ analysis, pdfSignedUrl }: Props) 
       }).then(r => r.json())
       const [data] = await Promise.all([fetchData, minDelay])
       if (data.error) throw new Error(data.error)
+      detectMemCache.set(analysis.id, data as PangramResult)
       setDetectResult(data as PangramResult)
     } catch (e) {
       if (e instanceof Error && e.name === 'AbortError') return
@@ -385,6 +433,7 @@ export default function AnalysisResultsPanel({ analysis, pdfSignedUrl }: Props) 
       }).then(r => r.json())
       const [data] = await Promise.all([fetchData, minDelay])
       if (data.error) throw new Error(data.error)
+      gapsMemCache.set(analysis.id, data as LeaseGapsResult)
       setGapsResult(data as LeaseGapsResult)
     } catch (e) {
       if (e instanceof Error && e.name === 'AbortError') return
@@ -407,7 +456,7 @@ export default function AnalysisResultsPanel({ analysis, pdfSignedUrl }: Props) 
   // Pill position calculation for 3 segments
   const pillLeft = activeTab === 'risk' ? 4 : activeTab === 'detect' ? '33.33%' : '66.66%'
   const pillRight = activeTab === 'gaps' ? 4 : activeTab === 'detect' ? '33.33%' : '66.66%'
-  const pillColor = activeTab === 'risk' ? '#C9748A' : activeTab === 'detect' ? '#1a3a4a' : '#92610A'
+  const pillColor = activeTab === 'risk' ? '#C9748A' : activeTab === 'detect' ? '#2a6080' : '#B8790A'
 
   return (
     <div className="flex flex-col h-screen overflow-hidden">
@@ -632,14 +681,14 @@ export default function AnalysisResultsPanel({ analysis, pdfSignedUrl }: Props) 
                         </div>
                         <div className="flex-1 min-w-0 space-y-3 pt-2">
                           <BentoCard className="p-3 border bg-surface" persistent
-                            style={{ borderColor: 'rgba(26,58,74,0.4)', borderLeftWidth: '3px', borderLeftColor: '#1a3a4a' }}>
+                            style={{ borderColor: 'rgba(91,196,232,0.35)', borderLeftWidth: '3px', borderLeftColor: '#5bc4e8' }}>
                             <div className="flex items-center gap-1.5 mb-1.5">
-                              <Bot className="w-3.5 h-3.5" style={{ color: '#4a9ab5' }} />
-                              <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: '#4a9ab5' }}>
+                              <Bot className="w-3.5 h-3.5" style={{ color: '#5bc4e8' }} />
+                              <span className="text-xs font-bold uppercase tracking-wider" style={{ color: '#5bc4e8' }}>
                                 Verdict
                               </span>
                             </div>
-                            <p className="text-text-primary font-semibold text-sm mb-1.5">
+                            <p className="text-text-primary font-bold text-base mb-1.5">
                               {detectResult.headline}
                             </p>
                             <p className="text-text-secondary text-sm leading-relaxed">
@@ -649,30 +698,30 @@ export default function AnalysisResultsPanel({ analysis, pdfSignedUrl }: Props) 
 
                           <BentoCard className="p-3 border border-border bg-surface-raised">
                             <div className="flex items-center gap-1.5 mb-2">
-                              <Info className="w-3.5 h-3.5 text-text-muted" />
-                              <span className="text-text-muted text-xs font-semibold uppercase tracking-wider">Breakdown</span>
+                              <Info className="w-3.5 h-3.5 text-text-secondary" />
+                              <span className="text-text-secondary text-xs font-bold uppercase tracking-wider">Breakdown</span>
                             </div>
-                            <div className="flex h-2 rounded-full overflow-hidden gap-px mb-2">
+                            <div className="flex h-2.5 rounded-full overflow-hidden gap-px mb-3">
                               <div style={{ width: `${detectResult.fraction_ai * 100}%`, background: '#C9748A' }} />
                               <div style={{ width: `${detectResult.fraction_ai_assisted * 100}%`, background: '#E09A30' }} />
                               <div style={{ width: `${detectResult.fraction_human * 100}%`, background: '#4ade80' }} />
                             </div>
-                            <div className="flex items-center gap-4 text-xs text-text-muted">
-                              <span className="flex items-center gap-1">
+                            <div className="flex items-center gap-4 text-xs font-semibold">
+                              <span className="flex items-center gap-1.5" style={{ color: '#C9748A' }}>
                                 <span className="w-2 h-2 rounded-full inline-block" style={{ background: '#C9748A' }} />
                                 AI {Math.round(detectResult.fraction_ai * 100)}%
                               </span>
-                              <span className="flex items-center gap-1">
+                              <span className="flex items-center gap-1.5" style={{ color: '#E09A30' }}>
                                 <span className="w-2 h-2 rounded-full inline-block" style={{ background: '#E09A30' }} />
                                 AI-Assisted {Math.round(detectResult.fraction_ai_assisted * 100)}%
                               </span>
-                              <span className="flex items-center gap-1">
+                              <span className="flex items-center gap-1.5" style={{ color: '#4ade80' }}>
                                 <span className="w-2 h-2 rounded-full inline-block" style={{ background: '#4ade80' }} />
                                 Human {Math.round(detectResult.fraction_human * 100)}%
                               </span>
                             </div>
-                            <p className="text-text-muted text-xs mt-2">
-                              Powered by <span className="font-semibold text-text-secondary">Pangram AI</span> · probabilistic, not a legal determination
+                            <p className="text-text-secondary text-xs mt-2">
+                              Powered by <span className="font-semibold text-text-primary">Pangram AI</span> · probabilistic, not a legal determination
                             </p>
                           </BentoCard>
                         </div>
@@ -775,21 +824,21 @@ export default function AnalysisResultsPanel({ analysis, pdfSignedUrl }: Props) 
                           </BentoCard>
                           {sortedGapItems.length > 0 && (
                             <BentoCard className="p-3 border bg-surface-raised"
-                              style={{ borderColor: 'rgba(146,97,10,0.3)', borderLeftWidth: '3px', borderLeftColor: '#92610A' }}>
-                              <div className="flex items-center gap-4 text-xs">
+                              style={{ borderColor: 'rgba(224,154,48,0.35)', borderLeftWidth: '3px', borderLeftColor: '#E09A30' }}>
+                              <div className="flex items-center gap-4 text-xs font-bold">
                                 {(['critical', 'important', 'recommended'] as const).map(sev => {
                                   const count = sortedGapItems.filter(i => i.severity === sev).length
                                   if (!count) return null
-                                  const c = severityColor(sev)
+                                  const c = sev === 'critical' ? '#C9748A' : sev === 'important' ? '#E09A30' : 'var(--text-secondary)'
                                   return (
-                                    <span key={sev} className="flex items-center gap-1.5 font-semibold"
+                                    <span key={sev} className="flex items-center gap-1.5"
                                       style={{ color: c }}>
-                                      <span className="w-1.5 h-1.5 rounded-full" style={{ background: c }} />
+                                      <span className="w-2 h-2 rounded-full" style={{ background: c }} />
                                       {count} {sev}
                                     </span>
                                   )
                                 })}
-                                <span className="text-text-muted">missing clauses</span>
+                                <span className="text-text-secondary font-normal">missing clauses</span>
                               </div>
                             </BentoCard>
                           )}
@@ -803,8 +852,8 @@ export default function AnalysisResultsPanel({ analysis, pdfSignedUrl }: Props) 
                         <>
                           <div className="flex items-center gap-3 mb-4">
                             <h2 className="font-display text-lg font-bold text-text-primary">Missing Clauses</h2>
-                            <span className="text-xs px-2 py-0.5 rounded-full font-semibold"
-                              style={{ color: '#92610A', background: 'rgba(146,97,10,0.12)', border: '1px solid rgba(146,97,10,0.25)' }}>
+                            <span className="text-xs px-2 py-0.5 rounded-full font-bold"
+                              style={{ color: '#E09A30', background: 'rgba(224,154,48,0.14)', border: '1px solid rgba(224,154,48,0.3)' }}>
                               {sortedGapItems.length} found
                             </span>
                           </div>

@@ -1,10 +1,10 @@
 export const SEO = {
   siteName: 'LeaseGuard',
   siteUrl: 'https://theleaseguard.com',
-  defaultTitle: 'LeaseGuard — AI Lease & Contract Analyzer',
+  defaultTitle: 'LeaseGuard — Free AI Lease & Contract Analyzer',
   defaultDescription:
-    'Upload your lease and get an instant risk score, flagged clauses, and negotiation scripts powered by AI. Protect yourself before you sign.',
-  defaultOgImage: 'https://theleaseguard.com/og-image.png',
+    'Free AI lease analyzer. Upload any contract and get an instant risk score, flagged clauses, hidden cost estimate, and negotiation scripts in under 60 seconds. Protect yourself before you sign.',
+  defaultOgImage: 'https://theleaseguard.com/logo.png',
   twitterHandle: '@leaseguard',
   themeColor: '#C9748A',
 } as const

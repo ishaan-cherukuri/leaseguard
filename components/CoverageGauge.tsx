@@ -91,9 +91,9 @@ export default function CoverageGauge({ score, level }: CoverageGaugeProps) {
             fill="var(--text-primary)" fontSize="36" fontWeight="700"
             fontFamily="var(--font-playfair)"
           >0</text>
-          <text x={size / 2} y={size / 2 + 20}
+          <text x={size / 2} y={size / 2 + 22}
             textAnchor="middle" dominantBaseline="middle"
-            fill="var(--text-muted)" fontSize="10"
+            fill="var(--text-secondary)" fontSize="13"
             fontFamily="var(--font-dm-sans)"
           >Lease Coverage</text>
         </svg>

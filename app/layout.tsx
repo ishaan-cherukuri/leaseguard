@@ -33,6 +33,7 @@ export const metadata: Metadata = {
   description: SEO.defaultDescription,
   keywords: [
     'AI lease analyzer',
+    'free lease analyzer',
     'lease review',
     'contract analysis',
     'lease red flags',
@@ -40,14 +41,26 @@ export const metadata: Metadata = {
     'rental agreement review',
     'AI contract reviewer',
     'is my lease fair',
+    'lease risk score',
+    'hidden lease costs',
+    'negotiation scripts lease',
+    'renter protection',
+    'contract risk analyzer',
   ],
   authors: [{ name: 'LeaseGuard' }],
   creator: 'LeaseGuard',
   publisher: 'LeaseGuard',
+  icons: {
+    icon: [
+      { url: '/logo.png', type: 'image/png' },
+    ],
+    shortcut: '/logo.png',
+    apple: '/logo.png',
+  },
   robots: {
     index: true,
     follow: true,
-    googleBot: { index: true, follow: true },
+    googleBot: { index: true, follow: true, 'max-image-preview': 'large' },
   },
   alternates: {
     canonical: SEO.siteUrl,
@@ -62,14 +75,14 @@ export const metadata: Metadata = {
     images: [
       {
         url: SEO.defaultOgImage,
-        width: 1200,
-        height: 630,
-        alt: 'LeaseGuard — AI Lease & Contract Analyzer',
+        width: 512,
+        height: 512,
+        alt: 'LeaseGuard — Free AI Lease & Contract Analyzer',
       },
     ],
   },
   twitter: {
-    card: 'summary_large_image',
+    card: 'summary',
     site: SEO.twitterHandle,
     creator: SEO.twitterHandle,
     title: SEO.defaultTitle,
@@ -105,6 +118,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta name="theme-color" content={SEO.themeColor} />
+        <link rel="icon" type="image/png" href="/logo.png" />
+        <link rel="shortcut icon" href="/logo.png" />
+        <link rel="apple-touch-icon" href="/logo.png" />
         <JsonLd data={organizationSchema} />
       </head>
       <body className="min-h-screen antialiased">
