@@ -875,8 +875,13 @@ function Nav({ dark, toggleDark }: { dark: boolean; toggleDark: () => void }) {
         {/* Logo */}
         <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', textDecoration: 'none' }}>
           <ShieldLogo size={60} />
-          <span style={{ fontFamily: 'var(--font-playfair), serif', fontSize: '1.65rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-            LeaseGuard
+          <span style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.1 }}>
+            <span style={{ fontFamily: 'var(--font-playfair), serif', fontSize: '1.65rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+              LeaseGuard
+            </span>
+            <span style={{ fontSize: '0.65rem', fontWeight: 500, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>
+              AI Detector &amp; Contract Management
+            </span>
           </span>
         </Link>
 

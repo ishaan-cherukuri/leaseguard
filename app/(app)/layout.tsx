@@ -32,7 +32,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
               style={{ background: 'var(--accent-dim)', border: '1px solid color-mix(in srgb, var(--accent) 25%, transparent)' }}>
               <Shield className="w-3.5 h-3.5 text-accent" />
             </div>
-            <span className="font-display text-base font-bold text-text-primary">LeaseGuard</span>
+            <span className="flex flex-col" style={{ lineHeight: 1.15 }}>
+              <span className="font-display text-base font-bold text-text-primary">LeaseGuard</span>
+              <span style={{ fontSize: '0.6rem', fontWeight: 500, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>AI &amp; Contract Mgmt</span>
+            </span>
           </Link>
         </div>
 
